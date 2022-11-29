@@ -1,6 +1,6 @@
 {
   "name": "hook-data-access",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "dist/index.js",
   "repository": "git@git.code-null:nate-wilkins/hook-data-access.git",
