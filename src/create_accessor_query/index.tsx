@@ -42,6 +42,7 @@ export const createAccessorQuery = <QueryRequest, QueryResponse, Data>({
   cacheId: (args: QueryRequest) => string;
   cacheSet: (args: {
     cacheId: string;
+    request: (args: QueryRequest) => Promise<AccessorQueryResult<Data>>;
     response: { status: number; data: QueryResponse };
   }) => { data: Data };
   cacheGet: (args: {
@@ -56,7 +57,7 @@ export const createAccessorQuery = <QueryRequest, QueryResponse, Data>({
   const requestMap = new Map();
 
   // Query request with caching support.
-  const request = (args: QueryRequest) => {
+  const request = (args: QueryRequest): Promise<AccessorQueryResult<Data>> => {
     // Do we have an existing request in the cache?
     const cacheIdString = cacheId(args);
     const cachePromise = requestMap.get(cacheIdString);
@@ -79,6 +80,7 @@ export const createAccessorQuery = <QueryRequest, QueryResponse, Data>({
       // Set query result cache.
       return cacheSet({
         cacheId: cacheIdString,
+        request,
         response: { status: response.status, data: response.data },
       });
     })();
@@ -112,4 +114,3 @@ export const createAccessorQuery = <QueryRequest, QueryResponse, Data>({
     return proxy as AccessorQueryResult<Data>;
   };
 };
-
