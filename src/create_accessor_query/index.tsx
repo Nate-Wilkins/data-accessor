@@ -42,12 +42,14 @@ export const createAccessorQuery = <QueryRequest, QueryResponse, Data>({
   cacheId: (args: QueryRequest) => string;
   cacheSet: (args: {
     cacheId: string;
+    args: QueryRequest;
     request: (args: QueryRequest) => Promise<AccessorQueryResult<Data>>;
     response: { status: number; data: QueryResponse };
   }) => { data: Data };
   cacheGet: (args: {
     cacheId: string;
     args: QueryRequest;
+    request: (args: QueryRequest) => Promise<AccessorQueryResult<Data>>;
   }) => AccessorQueryResult<Data> | null;
   query: (
     args: QueryRequest,
@@ -80,6 +82,7 @@ export const createAccessorQuery = <QueryRequest, QueryResponse, Data>({
       // Set query result cache.
       return cacheSet({
         cacheId: cacheIdString,
+        args,
         request,
         response: { status: response.status, data: response.data },
       });
@@ -95,7 +98,7 @@ export const createAccessorQuery = <QueryRequest, QueryResponse, Data>({
   return (args: QueryRequest): AccessorQueryResult<Data> => {
     // Do we have a cached result?
     const cacheIdString = cacheId(args);
-    const cacheResult = cacheGet({ cacheId: cacheIdString, args });
+    const cacheResult = cacheGet({ cacheId: cacheIdString, args, request });
     if (cacheResult) {
       return cacheResult;
     }
