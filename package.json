@@ -1,5 +1,5 @@
 {
-  "name": "hook-data-access",
+  "name": "simple-data-access",
   "version": "1.2.0",
   "description": "",
   "main": "dist/index.js",

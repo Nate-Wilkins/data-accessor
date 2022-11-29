@@ -1,4 +1,4 @@
-# Hook Data Access
+# Simple Data Access
 
-> Common hook for data access.
+> Simple hooks and components for data access.
 
