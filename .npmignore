@@ -1,0 +1,7 @@
+scripts/
+.gitignore
+tsconfig.json
+webpack.config.ts
+yarn.lock
+node_modules/
+
