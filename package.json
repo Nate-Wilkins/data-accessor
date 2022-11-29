@@ -8,7 +8,10 @@
     "build": "ts-node ./node_modules/webpack/bin/webpack",
     "prepare": "yarn build"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@types/react": "^18.0.25",
+    "react": "18.2.0"
+  },
   "devDependencies": {
     "@types/circular-dependency-plugin": "5.0.5",
     "circular-dependency-plugin": "5.2.2",

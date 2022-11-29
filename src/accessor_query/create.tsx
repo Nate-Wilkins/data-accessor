@@ -33,7 +33,7 @@ import { AccessorQueryRequestResponse, AccessorQueryResult } from './types';
  *   };
  *   ```
  */
-export const createAccessorQuery = <QueryRequest, QueryResponse, Data>({
+export const create = <QueryRequest, QueryResponse, Data>({
   cacheId,
   cacheSet,
   cacheGet,

@@ -1,1 +1,1 @@
-export * from './create_accessor_query';
+export * as accessorQuery from './accessor_query';
