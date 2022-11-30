@@ -20,10 +20,10 @@ import { AccessorQueryRequestResponse, AccessorQueryResult } from './types';
  * @example
  *   ```
  *   // use_get_book.tsx
- *   const useGetBook = createAccessorQuery({ ... });
+ *   const useGetBook = createHook({ ... });
  *
  *   // use_get_book_reports.tsx
- *   const useGetBookReports = createAccessorQuery({ ... });
+ *   const useGetBookReports = createHook({ ... });
  *
  *   // BookReports.tsx
  *   const BookReports = ({ id }) => {
@@ -33,13 +33,13 @@ import { AccessorQueryRequestResponse, AccessorQueryResult } from './types';
  *   };
  *   ```
  */
-export const create = <QueryRequest, QueryResponse, Data>({
+export const createHook = <QueryRequest, QueryResponse, Data>({
   cacheId,
   cacheSet,
   cacheGet,
   query,
 }: {
-  cacheId: (args: QueryRequest) => string;
+  cacheId: (args: { args: QueryRequest }) => string;
   cacheSet: (args: {
     cacheId: string;
     args: QueryRequest;
@@ -61,7 +61,7 @@ export const create = <QueryRequest, QueryResponse, Data>({
   // Query request with caching support.
   const request = (args: QueryRequest): Promise<AccessorQueryResult<Data>> => {
     // Do we have an existing request in the cache?
-    const cacheIdString = cacheId(args);
+    const cacheIdString = cacheId({ args });
     const cachePromise = requestMap.get(cacheIdString);
     if (cachePromise) return cachePromise;
 
@@ -97,7 +97,7 @@ export const create = <QueryRequest, QueryResponse, Data>({
   // Accessor hook query.
   return (args: QueryRequest): AccessorQueryResult<Data> => {
     // Do we have a cached result?
-    const cacheIdString = cacheId(args);
+    const cacheIdString = cacheId({ args });
     const cacheResult = cacheGet({ cacheId: cacheIdString, args, request });
     if (cacheResult) {
       return cacheResult;
