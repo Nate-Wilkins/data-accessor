@@ -205,11 +205,23 @@ const configuration: AccessorQueryConfiguration<
 };
 ```
 
-2. Create an accessor with the configuration.
+2. Make sure your cache is initialized with the accessor query `createCache`.
+   This example uses [`zustand`](https://github.com/pmndrs/zustand).
 
-#### ReactJS Accessor Queries
+```typescript
+const createCache = () => {
+  return create<CacheStore>(set => ({
+    ...AccessorQuery.createCache(set),
+    // ... other cache state initialization ...
+  }));
+};
+```
 
-3. In ReactJS you can do this in two different ways. But the configuration is the same.
+3. Create an accessor query with the configuration.
+
+#### ReactJS
+
+4. In ReactJS you can do this in two different ways. But the configuration is the same.
 
 ```typescript
 // 1. Accessor as a component. (recommended)
@@ -231,7 +243,7 @@ export const useGetCategories = accessorQuery.createHook<
 >(configuration);
 ```
 
-3. Use your accessor.
+5. Use your accessor.
    Notice how we are utilizing `ErrorBoundary` and `Suspense` here for error handling and loading states respectively.
    No additional setup is needed to get these components to work.
 

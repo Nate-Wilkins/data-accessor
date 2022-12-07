@@ -1,9 +1,9 @@
 import produce from 'immer';
 import { suspend } from '../suspend';
 import {
-  AccessorCacheStore,
-  AccessorCacheStoreSet,
-  AccessorConfiguration,
+  AccessorQueryCacheStore,
+  AccessorQueryCacheStoreSet,
+  AccessorQueryConfiguration,
   AccessorQueryResult,
 } from './types';
 
@@ -11,8 +11,8 @@ import {
  * A minimal cache store for data access.
  */
 export const createCache = (
-  set: (store: AccessorCacheStoreSet<AccessorCacheStore>) => void,
-): AccessorCacheStore => {
+  set: (store: AccessorQueryCacheStoreSet<AccessorQueryCacheStore>) => void,
+): AccessorQueryCacheStore => {
   return {
     dataAccess: {
       // State management libraries are usually immutable.
@@ -34,11 +34,11 @@ export const createCache = (
 };
 
 /*
- * Creates an accessor.
+ * Creates an accessor query hook.
  *
- * An accessor is a data query hook used to query data.
+ * An accessor query is a data query hook used to query data.
  *
- * This query hook utilizes suspense and proxies to make data querying easier on the client.
+ * This query hook utilizes `React.Suspense`, `React.ErrorBoundary`, and proxies to make data querying easier on the client.
  *
  * This happens in the following order:
  *   1. The client invokes the hook.
@@ -50,17 +50,18 @@ export const createCache = (
  *   7. Otherwise create a new request and store it in the request cache.
  *   8. Once the request completes cache the result.
  *
- * @param configuration.cacheDuration                   - How long, in seconds, the accessor cache should be used for before being invalidated.
- * @param configuration.cacheIsPrimableFromCache <true> - Determines if the accessor can be primed from the cache of other data accessors.
- *                                                        Once primed the `configuration.cacheDuration` will be respected.
- * @param configuration.cacheId                         - Synchrounous get function used to reference the accessor cache.
- * @param configuration.cacheSet                        - Synchrounous set function used to assign the query's response to cache.
- * @param configuration.cacheGet                        - Synchrounous get function used to construct the accessor response from cache.
- * @param configuration.query                           - Asynchrounous get function used to populate the accessor cache.
+ * @param configuration.cacheDuration                    - How long, in seconds, the accessor cache should be used for before being invalidated.
+ * @param configuration.cacheIsPrimableFromCache <true>  - Determines if the accessor can be primed from the cache of other data accessors.
+ *                                                         Once primed the `configuration.cacheDuration` will be respected.
+ * @param configuration.cacheId                          - Synchrounous get function used to reference the accessor cache.
+ * @param configuration.cacheSet                         - Synchrounous set function used to assign the query's response to cache.
+ * @param configuration.cacheGet                         - Synchrounous get function used to construct the accessor response from cache.
+ * @param.configuration.debug <false>                    - Turns logging on or off.
+ * @param configuration.query                            - Asynchrounous get function used to populate the accessor cache.
  *
  * @returns (cache: Cache, args: QueryRequest) => AccessorQueryResult<Data
- * @param cache                                         - Where to store cache data for data access.
- * @param args                                          - Arguments to send to the query.
+ * @param cache                                          - Where to store cache data for data access.
+ * @param args                                           - Arguments to send to the query.
  *
  * @example
  *   ```
@@ -79,7 +80,7 @@ export const createCache = (
  *   ```
  */
 export const createHook = <
-  Cache extends AccessorCacheStore,
+  Cache extends AccessorQueryCacheStore,
   QueryRequest,
   QueryResponse,
   Data
@@ -91,7 +92,7 @@ export const createHook = <
   cacheGet,
   debug,
   query,
-}: AccessorConfiguration<Cache, QueryRequest, QueryResponse, Data>): ((
+}: AccessorQueryConfiguration<Cache, QueryRequest, QueryResponse, Data>): ((
   cache: () => Cache,
   args: QueryRequest,
 ) => AccessorQueryResult<Data>) => {
@@ -182,14 +183,16 @@ export const createHook = <
 
     // Cache request query promise.
     set(
-      produce<AccessorCacheStore>(({ dataAccess: { query: cacheQuery } }) => {
-        cacheQuery.set(cacheIdString, {
-          cacheTimeToRefresh: Date.now() + cacheDuration,
-          // NOTE: This is stored in cache with a generic type of 'any'.
-          //       Not sure why typescript doesn't throw here without type casting.
-          promise,
-        });
-      }),
+      produce<AccessorQueryCacheStore>(
+        ({ dataAccess: { query: cacheQuery } }) => {
+          cacheQuery.set(cacheIdString, {
+            cacheTimeToRefresh: Date.now() + cacheDuration,
+            // NOTE: This is stored in cache with a generic type of 'any'.
+            //       Not sure why typescript doesn't throw here without type casting.
+            promise,
+          });
+        },
+      ),
     );
 
     return promise;
@@ -239,7 +242,7 @@ export const createHook = <
 
     // Cache suspended request query.
     set(
-      produce<AccessorCacheStore>(
+      produce<AccessorQueryCacheStore>(
         ({ dataAccess: { suspense: cacheSuspense } }) => {
           cacheSuspense.set(
             cacheIdString,
@@ -324,7 +327,7 @@ export const createHook = <
 
         // Cache reset for query & suspense.
         set(
-          produce<AccessorCacheStore>(
+          produce<AccessorQueryCacheStore>(
             ({
               dataAccess: { suspense: cacheSuspense, query: cacheQuery },
             }) => {
@@ -358,7 +361,7 @@ export const createHook = <
 
         // Cache with resolved cache result.
         set(
-          produce<AccessorCacheStore>(
+          produce<AccessorQueryCacheStore>(
             ({ dataAccess: { query: cacheQuery } }) => {
               cacheQuery.set(cacheIdString, {
                 cacheTimeToRefresh: Date.now() + cacheDuration,

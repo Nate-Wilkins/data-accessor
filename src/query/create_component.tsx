@@ -1,8 +1,8 @@
 import React, { FunctionComponent, ReactNode } from 'react';
 import { createHook } from './create';
 import {
-  AccessorCacheStore,
-  AccessorConfiguration,
+  AccessorQueryCacheStore,
+  AccessorQueryConfiguration,
   AccessorQueryResult,
 } from './types';
 
@@ -13,19 +13,19 @@ type Props<Cache, QueryRequest, Data> = {
 };
 
 /*
- * Create an accessor component.
+ * Create an accessor query component.
  *
  * These types of function factories are often referred to as high level order components (HOC).
  *
  * Please refer to the `createHook` function for more details.
  */
 export const createComponent = <
-  Cache extends AccessorCacheStore,
+  Cache extends AccessorQueryCacheStore,
   QueryRequest,
   QueryResponse,
   Data
 >(
-  configuration: AccessorConfiguration<
+  configuration: AccessorQueryConfiguration<
     Cache,
     QueryRequest,
     QueryResponse,

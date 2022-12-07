@@ -1,12 +1,12 @@
 export type FetchMore<T> = () => Promise<AccessorQueryResult<T>>;
 
-export type AccessorCacheStoreSet<T> = {
+export type AccessorQueryCacheStoreSet<T> = {
   (store: T): void;
 };
 
-export type AccessorCacheStore = {
+export type AccessorQueryCacheStore = {
   dataAccess: {
-    set: (store: AccessorCacheStoreSet<AccessorCacheStore>) => any;
+    set: (store: AccessorQueryCacheStoreSet<AccessorQueryCacheStore>) => any;
     query: Map<
       string,
       {
@@ -18,7 +18,12 @@ export type AccessorCacheStore = {
   };
 };
 
-export type AccessorConfiguration<Cache, QueryRequest, QueryResponse, Data> = {
+export type AccessorQueryConfiguration<
+  Cache,
+  QueryRequest,
+  QueryResponse,
+  Data
+> = {
   cacheDuration: number;
   cacheId: (args: { args: QueryRequest }) => string;
   cacheSet: (args: {
