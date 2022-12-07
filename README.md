@@ -126,7 +126,7 @@ export const getBooks = async ({
 };
 ```
 
-1. Create an accessor query configuration.
+1. Step one is to create an accessor query configuration.
 
 ```typescript
 import { AccessorQuery, AccessorQueryConfiguration } from 'data-accessor';
@@ -205,7 +205,7 @@ const configuration: AccessorQueryConfiguration<
 };
 ```
 
-2. Make sure your cache is initialized with the accessor query `createCache`.
+2. Then make sure your cache is initialized with the accessor query `createCache`.
    This example uses [`zustand`](https://github.com/pmndrs/zustand).
 
 ```typescript
@@ -217,7 +217,7 @@ const createCache = () => {
 };
 ```
 
-3. Create an accessor query with the configuration.
+3. And finally to create the accessor query with the configuration.
 
 #### ReactJS
 
@@ -243,7 +243,7 @@ export const useGetCategories = accessorQuery.createHook<
 >(configuration);
 ```
 
-5. Use your accessor.
+5. The last step is to use your accessor query.
    Notice how we are utilizing `ErrorBoundary` and `Suspense` here for error handling and loading states respectively.
    No additional setup is needed to get these components to work.
 
