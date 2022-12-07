@@ -1,8 +1,13 @@
 import React, { FunctionComponent, ReactNode } from 'react';
 import { createHook } from './create';
-import { AccessorQueryRequestResponse, AccessorQueryResult } from './types';
+import {
+  AccessorCacheStore,
+  AccessorConfiguration,
+  AccessorQueryResult,
+} from './types';
 
-type Props<QueryRequest, Data> = {
+type Props<Cache, QueryRequest, Data> = {
+  cache: () => Cache;
   args: QueryRequest;
   children: (result: AccessorQueryResult<Data>) => ReactNode;
 };
@@ -14,39 +19,25 @@ type Props<QueryRequest, Data> = {
  *
  * Please refer to the `createHook` function for more details.
  */
-export const createComponent = <QueryRequest, QueryResponse, Data>({
-  cacheId,
-  cacheSet,
-  cacheGet,
-  query,
-}: {
-  cacheId: (args: QueryRequest) => string;
-  cacheSet: (args: {
-    cacheId: string;
-    args: QueryRequest;
-    request: (args: QueryRequest) => Promise<AccessorQueryResult<Data>>;
-    response: { status: number; data: QueryResponse };
-  }) => { data: Data };
-  cacheGet: (args: {
-    cacheId: string;
-    args: QueryRequest;
-    request: (args: QueryRequest) => Promise<AccessorQueryResult<Data>>;
-  }) => AccessorQueryResult<Data> | null;
-  query: (
-    args: QueryRequest,
-  ) => Promise<AccessorQueryRequestResponse<QueryResponse>>;
-}): FunctionComponent<Props<QueryRequest, Data>> => {
+export const createComponent = <
+  Cache extends AccessorCacheStore,
+  QueryRequest,
+  QueryResponse,
+  Data
+>(
+  configuration: AccessorConfiguration<
+    Cache,
+    QueryRequest,
+    QueryResponse,
+    Data
+  >,
+): FunctionComponent<Props<Cache, QueryRequest, Data>> => {
   // Accessor.
-  const accessorQuery = createHook({
-    cacheId,
-    cacheSet,
-    cacheGet,
-    query,
-  });
+  const useAccessor = createHook(configuration);
 
   // Component.
-  return ({ children, args }) => {
-    const accessorResult = accessorQuery(args);
+  return ({ children, cache, args }) => {
+    const accessorResult = useAccessor(cache, args);
 
     return <>{children(accessorResult)}</>;
   };
