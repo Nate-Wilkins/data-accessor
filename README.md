@@ -487,7 +487,7 @@ be. When they can't, as in the case above where `AccessorGetAuthor` requires the
 be made sequentially.
 
 There are a few different ways you can combine accessor queries and you can check them out in this [Stackblitz Demo on
-Accessor Query Composition Benchmarking](https://stackblitz.com/edit/react-data-accessor-perf-benchmarking?embed=1&file=src/index.tsx&theme=light&view=editor).
+Accessor Query Composition Benchmarking](https://stackblitz.com/edit/react-data-accessor-perf-benchmarking?embed=1&file=src/index.tsx&theme=dark&view=both).
 
 In short there's no one *best* way to compose accessors and its left up to the client.
 
