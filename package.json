@@ -1,6 +1,6 @@
 {
   "name": "data-accessor",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "Simple data access layer for the frontend.",
   "main": "dist/index.js",
   "types": "src/index.tsx",
