@@ -1,4 +1,3 @@
-import produce from 'immer';
 import { suspend } from '../suspend';
 import {
   AccessorQueryCacheStore,
@@ -185,18 +184,14 @@ export const createHook = <
     });
 
     // Cache request query promise.
-    set(
-      produce<AccessorQueryCacheStore>(
-        ({ dataAccess: { query: cacheQuery } }) => {
-          cacheQuery.set(cacheId, {
-            cacheTimeToRefresh: Date.now() + cache.duration,
-            // NOTE: This is stored in cache with a generic type of 'any'.
-            //       Not sure why typescript doesn't throw here without type casting.
-            promise,
-          });
-        },
-      ),
-    );
+    set(({ dataAccess: { query: cacheQuery } }) => {
+      cacheQuery.set(cacheId, {
+        cacheTimeToRefresh: Date.now() + cache.duration,
+        // NOTE: This is stored in cache with a generic type of 'any'.
+        //       Not sure why typescript doesn't throw here without type casting.
+        promise,
+      });
+    });
 
     return promise;
   };
@@ -250,18 +245,14 @@ export const createHook = <
     );
 
     // Cache suspended request query.
-    set(
-      produce<AccessorQueryCacheStore>(
-        ({ dataAccess: { suspense: cacheSuspense } }) => {
-          cacheSuspense.set(
-            cacheId,
-            // NOTE: This is stored in cache with a generic type of 'any'.
-            //       Not sure why typescript doesn't throw here without type casting.
-            suspense,
-          );
-        },
-      ),
-    );
+    set(({ dataAccess: { suspense: cacheSuspense } }) => {
+      cacheSuspense.set(
+        cacheId,
+        // NOTE: This is stored in cache with a generic type of 'any'.
+        //       Not sure why typescript doesn't throw here without type casting.
+        suspense,
+      );
+    });
 
     // Return suspense!
     return suspense;
@@ -343,14 +334,10 @@ export const createHook = <
 
         // Cache reset for query & suspense.
         set(
-          produce<AccessorQueryCacheStore>(
-            ({
-              dataAccess: { suspense: cacheSuspense, query: cacheQuery },
-            }) => {
-              cacheQuery.delete(cacheId);
-              cacheSuspense.delete(cacheId);
-            },
-          ),
+          ({ dataAccess: { suspense: cacheSuspense, query: cacheQuery } }) => {
+            cacheQuery.delete(cacheId);
+            cacheSuspense.delete(cacheId);
+          },
         );
       } else {
         if (cacheResult) {
@@ -371,18 +358,14 @@ export const createHook = <
           );
 
         // Cache with resolved cache result.
-        set(
-          produce<AccessorQueryCacheStore>(
-            ({ dataAccess: { query: cacheQuery } }) => {
-              cacheQuery.set(cacheId, {
-                cacheTimeToRefresh: Date.now() + cache.duration,
-                // NOTE: This request cache promise is never checked/used.
-                //       Only it's time to live property is relevant.
-                promise: null,
-              });
-            },
-          ),
-        );
+        set(({ dataAccess: { query: cacheQuery } }) => {
+          cacheQuery.set(cacheId, {
+            cacheTimeToRefresh: Date.now() + cache.duration,
+            // NOTE: This request cache promise is never checked/used.
+            //       Only it's time to live property is relevant.
+            promise: null,
+          });
+        });
 
         result = cacheResult;
       }

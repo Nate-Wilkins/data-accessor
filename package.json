@@ -13,7 +13,6 @@
     "@types/circular-dependency-plugin": "5.0.5",
     "@types/react": "18.0.25",
     "circular-dependency-plugin": "5.2.2",
-    "immer": "9.0.16",
     "np": "7.5.0",
     "path-browserify": "1.0.1",
     "prettier": "1.19.1",
