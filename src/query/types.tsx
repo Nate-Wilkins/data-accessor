@@ -24,22 +24,24 @@ export type AccessorQueryConfiguration<
   QueryResponse,
   Data
 > = {
-  cacheDuration: number;
-  cacheId: (args: { args: QueryRequest }) => string;
-  cacheSet: (args: {
-    cache: () => Cache;
-    cacheId: string;
-    args: QueryRequest;
-    request: (args: QueryRequest) => Promise<AccessorQueryResult<Data>>;
-    response: { status: number; data: QueryResponse };
-  }) => { data: Data };
-  cacheGet: (args: {
-    cache: () => Cache;
-    cacheId: string;
-    args: QueryRequest;
-    request: (args: QueryRequest) => Promise<AccessorQueryResult<Data>>;
-  }) => AccessorQueryResult<Data> | null;
-  cacheIsPrimableFromCache: boolean;
+  cache: {
+    duration: number;
+    id: (args: { args: QueryRequest }) => string;
+    set: (args: {
+      cache: () => Cache;
+      cacheId: string;
+      args: QueryRequest;
+      request: (args: QueryRequest) => Promise<AccessorQueryResult<Data>>;
+      response: { status: number; data: QueryResponse };
+    }) => { data: Data };
+    get: (args: {
+      cache: () => Cache;
+      cacheId: string;
+      args: QueryRequest;
+      request: (args: QueryRequest) => Promise<AccessorQueryResult<Data>>;
+    }) => AccessorQueryResult<Data> | null;
+    isPrimableFromCache: boolean;
+  };
   debug?: boolean;
   query: (
     args: QueryRequest,

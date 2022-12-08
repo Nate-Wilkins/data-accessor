@@ -50,14 +50,14 @@ export const createCache = (
  *   7. Otherwise create a new request and store it in the request cache.
  *   8. Once the request completes cache the result.
  *
- * @param configuration.cacheDuration                    - How long, in seconds, the accessor cache should be used for before being invalidated.
- * @param configuration.cacheIsPrimableFromCache <true>  - Determines if the accessor can be primed from the cache of other data accessors.
- *                                                         Once primed the `configuration.cacheDuration` will be respected.
- * @param configuration.cacheId                          - Synchrounous get function used to reference the accessor cache.
- * @param configuration.cacheSet                         - Synchrounous set function used to assign the query's response to cache.
- * @param configuration.cacheGet                         - Synchrounous get function used to construct the accessor response from cache.
- * @param.configuration.debug <false>                    - Turns logging on or off.
- * @param configuration.query                            - Asynchrounous get function used to populate the accessor cache.
+ * @param.configuration.cache.duration                             - How long, in seconds, the accessor cache should be used for before being invalidated.
+ * @param.configuration.cache.isPrimableFromCache <true>           - Determines if the accessor can be primed from the cache of other data accessors.
+ *                                                                   Once primed the `configuration.cacheDuration` will be respected.
+ * @param.configuration.cache.id                                   - Synchrounous get function used to reference the accessor cache.
+ * @param.configuration.cache.set                                  - Synchrounous set function used to assign the query's response to cache.
+ * @param.configuration.cache.get                                  - Synchrounous get function used to construct the accessor response from cache.
+ * @param.configuration.debug <false>                              - Turns logging on or off.
+ * @param configuration.query                                      - Asynchrounous get function used to populate the accessor cache.
  *
  * @returns (cache: Cache, args: QueryRequest) => AccessorQueryResult<Data
  * @param cache                                          - Where to store cache data for data access.
@@ -84,19 +84,16 @@ export const createHook = <
   QueryRequest,
   QueryResponse,
   Data
->({
-  cacheDuration,
-  cacheIsPrimableFromCache,
-  cacheId,
-  cacheSet,
-  cacheGet,
-  debug,
-  query,
-}: AccessorQueryConfiguration<Cache, QueryRequest, QueryResponse, Data>): ((
-  cache: () => Cache,
-  args: QueryRequest,
-) => AccessorQueryResult<Data>) => {
-  const queryName = query.name;
+>(
+  configuration: AccessorQueryConfiguration<
+    Cache,
+    QueryRequest,
+    QueryResponse,
+    Data
+  >,
+): ((cache: () => Cache, args: QueryRequest) => AccessorQueryResult<Data>) => {
+  const { debug } = configuration;
+  const queryName = configuration.query.name;
 
   /*
    * Query promise.
@@ -113,7 +110,7 @@ export const createHook = <
     let state = { isQueryFinished: false };
     const promise: Promise<AccessorQueryResult<Data>> = (async () => {
       // Execute query.
-      const response = await query(args);
+      const response = await configuration.query(args);
       state.isQueryFinished = true;
 
       // Handle query errors.
@@ -126,7 +123,7 @@ export const createHook = <
       }
 
       // Set query promise result cache.
-      return cacheSet({
+      return configuration.cache.set({
         cacheId: cacheIdString,
         args,
         cache,
@@ -151,7 +148,7 @@ export const createHook = <
     } = cache();
 
     // Do we have an existing query request promise in the cache?
-    const cacheIdString = cacheId({ args });
+    const cacheIdString = configuration.cache.id({ args });
 
     debug &&
       console.log(
@@ -186,7 +183,7 @@ export const createHook = <
       produce<AccessorQueryCacheStore>(
         ({ dataAccess: { query: cacheQuery } }) => {
           cacheQuery.set(cacheIdString, {
-            cacheTimeToRefresh: Date.now() + cacheDuration,
+            cacheTimeToRefresh: Date.now() + configuration.cache.duration,
             // NOTE: This is stored in cache with a generic type of 'any'.
             //       Not sure why typescript doesn't throw here without type casting.
             promise,
@@ -210,7 +207,7 @@ export const createHook = <
     } = cache();
 
     // Do we have an existing request in the cache?
-    const cacheIdString = cacheId({ args });
+    const cacheIdString = configuration.cache.id({ args });
 
     debug &&
       console.log(
@@ -270,7 +267,7 @@ export const createHook = <
     } = cache();
 
     // Do we have a cached result?
-    const cacheIdString = cacheId({ args });
+    const cacheIdString = configuration.cache.id({ args });
 
     debug &&
       console.log(
@@ -302,7 +299,7 @@ export const createHook = <
     ) as Data;
 
     // Do we have the data for this request already?
-    const cacheResult = cacheGet({
+    const cacheResult = configuration.cache.get({
       cacheId: cacheIdString,
       cache,
       args,
@@ -353,7 +350,7 @@ export const createHook = <
         );
 
       // We haven't made this request before but can we prime it from cache?
-      if (cacheIsPrimableFromCache && cacheResult) {
+      if (configuration.cache.isPrimableFromCache && cacheResult) {
         debug &&
           console.log(
             `[data-access:${queryName}:${cacheIdString}] request query cache primed from data cache.`,
@@ -364,7 +361,7 @@ export const createHook = <
           produce<AccessorQueryCacheStore>(
             ({ dataAccess: { query: cacheQuery } }) => {
               cacheQuery.set(cacheIdString, {
-                cacheTimeToRefresh: Date.now() + cacheDuration,
+                cacheTimeToRefresh: Date.now() + configuration.cache.duration,
                 // NOTE: This request cache promise is never checked/used.
                 //       Only it's time to live property is relevant.
                 promise: null,
