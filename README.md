@@ -138,68 +138,70 @@ const configuration: AccessorQueryConfiguration<
   ResponseGetBooks,
   Book[]
 > = {
-  cacheDuration: 1000 * 60 * 10, // 10mins
-  cacheGarbageCollection: true,
-  cacheIsPrimableFromCache: true,
-  cacheId: ({ pageSize, category, cursor }) => {
-    return `getBooks#${pageSize}#category#${category}#cursor#${cursor}`;
-  },
-  cacheSet: ({ cache, cacheId, response, request }) => {
-    const store = cache();
+  cache: {
+    duration: 1000 * 60 * 10, // 10mins
+    garbageCollection: true,
+    isPrimableFromCache: true,
+    id: ({ pageSize, category, cursor }) => {
+      return `getBooks#${pageSize}#category#${category}#cursor#${cursor}`;
+    },
+    set: ({ cache, cacheId, response, request }) => {
+      const store = cache();
 
-    // Parse.
-    const books = response.data.books;
+      // Parse.
+      const books = response.data.books;
 
-    // Set cache.
-    for (let book of books) { store.books.set(book.id, book); }
-    store.paginationInfo.set(cacheId, paginationInfo);
+      // Set cache.
+      for (let book of books) { store.books.set(book.id, book); }
+      store.paginationInfo.set(cacheId, paginationInfo);
 
-    return {
-      data: store.books.values(),
-      fetchMore:
-        paginationInfo && paginationInfo.nextCursor
-          ? () =>
-              request({
-                pageSize: args.pageSize,
-                category: args.category,
-                cursor: paginationInfo.nextCursor,
-              })
-          : null,
-    };
-  },
-  cacheGet: ({ cache, args }) => {
-    const store = cache();
+      return {
+        data: store.books.values(),
+        fetchMore:
+          paginationInfo && paginationInfo.nextCursor
+            ? () =>
+                request({
+                  pageSize: args.pageSize,
+                  category: args.category,
+                  cursor: paginationInfo.nextCursor,
+                })
+            : null,
+      };
+    },
+    get: ({ cache, args }) => {
+      const store = cache();
 
-    // Get cache.
-    const cacheResultPaginationInfo = store.paginationInfo.get(cacheId);
-    if (cacheResultPaginationInfo) {
-      const cacheResultData = [];
-      for (let book of store.books.values()) {
-        // Filter for this query.
-        // NOTE: Accessor caches don't care about request args like `pageSize` and `cursor`.
-        //       But it's guaranteed that a request was made if we get here.
-        if (book.category !== args.category) { continue; }
-        cacheResultData.push(book);
+      // Get cache.
+      const cacheResultPaginationInfo = store.paginationInfo.get(cacheId);
+      if (cacheResultPaginationInfo) {
+        const cacheResultData = [];
+        for (let book of store.books.values()) {
+          // Filter for this query.
+          // NOTE: Accessor caches don't care about request args like `pageSize` and `cursor`.
+          //       But it's guaranteed that a request was made if we get here.
+          if (book.category !== args.category) { continue; }
+          cacheResultData.push(book);
+        }
+
+        // Do we have cache results?
+        if (cacheResultData.length > 0) {
+          return {
+            data: cacheResultData,
+            fetchMore:
+              cacheResultPaginationInfo && cacheResultPaginationInfo.nextCursor
+                ? () =>
+                    request({
+                      pageSize: args.pageSize,
+                      category: args.category,
+                      cursor: cacheResultPaginationInfo.nextCursor,
+                    })
+                : null,
+          };
+        }
       }
 
-      // Do we have cache results?
-      if (cacheResultData.length > 0) {
-        return {
-          data: cacheResultData,
-          fetchMore:
-            cacheResultPaginationInfo && cacheResultPaginationInfo.nextCursor
-              ? () =>
-                  request({
-                    pageSize: args.pageSize,
-                    category: args.category,
-                    cursor: cacheResultPaginationInfo.nextCursor,
-                  })
-              : null,
-        };
-      }
-    }
-
-    return null;
+      return null;
+    },
   },
   query: api.getBooks,
 };
@@ -377,34 +379,36 @@ const configuration: AccessorQueryConfiguration<
   ResponseGetBook,
   Book
 > = {
-  cacheDuration: 1000 * 60 * 10, // 10mins
-  cacheGarbageCollection: false,
-  cacheIsPrimableFromCache: true,
-  cacheId: ({ id }) => {
-    return `getBook#${id}`;
-  },
-  cacheSet: ({ cache, cacheId, response, request }) => {
-    const store = cache();
+  cache: {
+    duration: 1000 * 60 * 10, // 10mins
+    garbageCollection: false,
+    isPrimableFromCache: true,
+    id: ({ id }) => {
+      return `getBook#${id}`;
+    },
+    set: ({ cache, cacheId, response, request }) => {
+      const store = cache();
 
-    // Parse.
-    const book = response.data.book;
+      // Parse.
+      const book = response.data.book;
 
-    // Set cache.
-    store.books.set(book.id, book);
+      // Set cache.
+      store.books.set(book.id, book);
 
-    return { data: book };
-  },
-  cacheGet: ({ cache, args }) => {
-    const store = cache();
+      return { data: book };
+    },
+    get: ({ cache, args }) => {
+      const store = cache();
 
-    // Get cache.
-    const cacheResultData = store.books.get(args.id);
-    if (typeof cacheResultData !== undefined) {
-      return { data: cacheResultData };
-    }
+      // Get cache.
+      const cacheResultData = store.books.get(args.id);
+      if (typeof cacheResultData !== undefined) {
+        return { data: cacheResultData };
+      }
 
-    return null;
-  },
+      return null;
+    },
+  }
   query: api.getBook,
 };
 ```
@@ -502,6 +506,36 @@ There are a few different ways you can combine accessor queries and you can chec
 Accessor Query Composition Benchmarking](https://stackblitz.com/edit/react-data-accessor-perf-benchmarking?embed=1&file=src/index.tsx&theme=dark&view=both).
 
 In short there's no one *best* way to compose accessors and its left up to the client.
+
+#### Usage with Constraints
+
+The accessors also have the ability to add constraints. These constraints are designed to help keep the accessor stable and in line with expectations.
+
+Here is an example where the `maxDelay` constraint is added and `enforce` is also set to throw `ErrorTimedOut` errors
+when the duration of the accessor call is over `maxDelay`. Feel free to turn this off/on for production/development.
+
+Usually these types of constraints should be on your API though. That way your API server can free up resources for
+other requests.
+
+```typescript
+import { AccessorQuery, AccessorQueryConfiguration } from 'data-accessor';
+import * as api from 'http_api';
+
+const configuration: AccessorQueryConfiguration<
+  CacheStore,
+  RequestGetBooks,
+  ResponseGetBooks,
+  Book[]
+> = {
+  debug: true,
+  constraints: {
+    enforce: true,
+    maxDelay: 1000 * 10, // 10secs
+  },
+  // ... cache configuration ...
+  query: api.getBooks,
+};
+```
 
 #### Organization in the File System
 

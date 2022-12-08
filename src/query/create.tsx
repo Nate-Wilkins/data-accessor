@@ -5,10 +5,13 @@ import {
   AccessorQueryCacheStoreSet,
   AccessorQueryConfiguration,
   AccessorQueryResult,
+  ErrorTimedOut,
 } from './types';
 
 /*
  * A minimal cache store for data access.
+ *
+ * This is used so that the cache can be reset with other data in the cache.
  */
 export const createCache = (
   set: (store: AccessorQueryCacheStoreSet<AccessorQueryCacheStore>) => void,
@@ -56,6 +59,12 @@ export const createCache = (
  * @param.configuration.cache.id                                   - Synchrounous get function used to reference the accessor cache.
  * @param.configuration.cache.set                                  - Synchrounous set function used to assign the query's response to cache.
  * @param.configuration.cache.get                                  - Synchrounous get function used to construct the accessor response from cache.
+ * @param.configuration.constraints.enforce                        - Determine if the accessor should throw when the constraints aren't met.
+ * @param.configuration.constraints.maxDelay <null>                - When provided the accessor will be timed.
+ *                                                                   To see timings you must have `debug` enabled.
+ *                                                                   If `enforce` is enabled then the accessor will
+ *                                                                   throw if the accessor can't resolve data within the
+ *                                                                   `maxDelay`.
  * @param.configuration.debug <false>                              - Turns logging on or off.
  * @param configuration.query                                      - Asynchrounous get function used to populate the accessor cache.
  *
@@ -84,33 +93,33 @@ export const createHook = <
   QueryRequest,
   QueryResponse,
   Data
->(
-  configuration: AccessorQueryConfiguration<
-    Cache,
-    QueryRequest,
-    QueryResponse,
-    Data
-  >,
-): ((cache: () => Cache, args: QueryRequest) => AccessorQueryResult<Data>) => {
-  const { debug } = configuration;
-  const queryName = configuration.query.name;
+>({
+  debug,
+  cache,
+  query,
+  constraints,
+}: AccessorQueryConfiguration<Cache, QueryRequest, QueryResponse, Data>): ((
+  getCacheStore: () => Cache,
+  args: QueryRequest,
+) => AccessorQueryResult<Data>) => {
+  const queryName = query.name;
 
   /*
    * Query promise.
    */
   const queryPromise = ({
-    cache,
-    cacheIdString,
+    getCacheStore,
+    cacheId,
     args,
   }: {
-    cache: () => Cache;
-    cacheIdString: string;
+    getCacheStore: () => Cache;
+    cacheId: string;
     args: QueryRequest;
   }): Promise<AccessorQueryResult<Data>> => {
     let state = { isQueryFinished: false };
     const promise: Promise<AccessorQueryResult<Data>> = (async () => {
       // Execute query.
-      const response = await configuration.query(args);
+      const response = await query(args);
       state.isQueryFinished = true;
 
       // Handle query errors.
@@ -123,11 +132,12 @@ export const createHook = <
       }
 
       // Set query promise result cache.
-      return configuration.cache.set({
-        cacheId: cacheIdString,
+      return cache.set({
+        cacheId: cacheId,
         args,
-        cache,
-        request: (args: QueryRequest) => requestQueryPromise(cache, args),
+        cache: getCacheStore,
+        request: (args: QueryRequest) =>
+          requestQueryPromise(getCacheStore, args),
         response: { status: response.status, data: response.data },
       });
     })();
@@ -140,41 +150,37 @@ export const createHook = <
    * Request query promise.
    */
   const requestQueryPromise = (
-    cache: () => Cache,
+    getCacheStore: () => Cache,
     args: QueryRequest,
   ): Promise<AccessorQueryResult<Data>> => {
     const {
       dataAccess: { set, query: cacheQuery },
-    } = cache();
+    } = getCacheStore();
 
     // Do we have an existing query request promise in the cache?
-    const cacheIdString = configuration.cache.id({ args });
+    const cacheId = cache.id({ args });
 
     debug &&
-      console.log(
-        `[data-access:${queryName}:${cacheIdString}] read query cache.`,
-      );
+      console.log(`[data-access:${queryName}:${cacheId}] read query cache.`);
 
-    const cacheQueryPromise = cacheQuery.get(cacheIdString)?.promise;
+    const cacheQueryPromise = cacheQuery.get(cacheId)?.promise;
     if (cacheQueryPromise) {
       debug &&
-        console.log(
-          `[data-access:${queryName}:${cacheIdString}] query cache found.`,
-        );
+        console.log(`[data-access:${queryName}:${cacheId}] query cache found.`);
       return cacheQueryPromise;
     } else {
       debug &&
         console.log(
-          `[data-access:${queryName}:${cacheIdString}] query cache *not* found.`,
+          `[data-access:${queryName}:${cacheId}] query cache *not* found.`,
         );
     }
 
     // Execute request query promise.
     debug &&
-      console.log(`[data-access:${queryName}:${cacheIdString}] execute query.`);
+      console.log(`[data-access:${queryName}:${cacheId}] execute query.`);
     const promise: Promise<AccessorQueryResult<Data>> = queryPromise({
-      cache,
-      cacheIdString,
+      getCacheStore,
+      cacheId,
       args,
     });
 
@@ -182,8 +188,8 @@ export const createHook = <
     set(
       produce<AccessorQueryCacheStore>(
         ({ dataAccess: { query: cacheQuery } }) => {
-          cacheQuery.set(cacheIdString, {
-            cacheTimeToRefresh: Date.now() + configuration.cache.duration,
+          cacheQuery.set(cacheId, {
+            cacheTimeToRefresh: Date.now() + cache.duration,
             // NOTE: This is stored in cache with a generic type of 'any'.
             //       Not sure why typescript doesn't throw here without type casting.
             promise,
@@ -198,43 +204,49 @@ export const createHook = <
   /*
    * Suspend request query.
    */
-  const suspenseRequestQuery = (
-    cache: () => Cache,
-    args: QueryRequest,
-  ): AccessorQueryResult<Data> => {
+  const suspenseRequestQuery = ({
+    getCacheStore,
+    onDone,
+    args,
+  }: {
+    getCacheStore: () => Cache;
+    onDone?: () => void;
+    args: QueryRequest;
+  }): (() => AccessorQueryResult<Data>) => {
     const {
       dataAccess: { set, suspense: cacheSuspense },
-    } = cache();
+    } = getCacheStore();
 
     // Do we have an existing request in the cache?
-    const cacheIdString = configuration.cache.id({ args });
+    const cacheId = cache.id({ args });
 
     debug &&
-      console.log(
-        `[data-access:${queryName}:${cacheIdString}] read suspense cache.`,
-      );
+      console.log(`[data-access:${queryName}:${cacheId}] read suspense cache.`);
 
-    const cacheRequestSuspense = cacheSuspense.get(cacheIdString);
+    const cacheRequestSuspense = cacheSuspense.get(cacheId);
     if (cacheRequestSuspense) {
       debug &&
         console.log(
-          `[data-access:${queryName}:${cacheIdString}] suspense cache found for.`,
+          `[data-access:${queryName}:${cacheId}] suspense cache found for.`,
         );
-      return cacheRequestSuspense();
+      return cacheRequestSuspense;
     } else {
       debug &&
         console.log(
-          `[data-access:${queryName}:${cacheIdString}] suspense cache *not* found.`,
+          `[data-access:${queryName}:${cacheId}] suspense cache *not* found.`,
         );
     }
 
     // Execute query request in suspense format.
     debug &&
       console.log(
-        `[data-access:${queryName}:${cacheIdString}] expecute query promise.`,
+        `[data-access:${queryName}:${cacheId}] expecute query promise.`,
       );
     const suspense: () => AccessorQueryResult<Data> = suspend(
-      requestQueryPromise(cache, args),
+      requestQueryPromise(getCacheStore, args).then(result => {
+        onDone && onDone();
+        return result;
+      }),
     );
 
     // Cache suspended request query.
@@ -242,7 +254,7 @@ export const createHook = <
       produce<AccessorQueryCacheStore>(
         ({ dataAccess: { suspense: cacheSuspense } }) => {
           cacheSuspense.set(
-            cacheIdString,
+            cacheId,
             // NOTE: This is stored in cache with a generic type of 'any'.
             //       Not sure why typescript doesn't throw here without type casting.
             suspense,
@@ -251,75 +263,82 @@ export const createHook = <
       ),
     );
 
-    // Execute suspense!
-    return suspense();
+    // Return suspense!
+    return suspense;
   };
 
   /*
    * Accessor hook.
    */
   return (
-    cache: () => Cache,
+    getCacheStore: () => Cache,
     args: QueryRequest,
   ): AccessorQueryResult<Data> => {
-    const {
-      dataAccess: { set, query: cacheQuery },
-    } = cache();
+    // Are we profiling?
+    let finishProfiling: undefined | (() => void);
+    if (typeof constraints.maxDelay === 'number') {
+      // Start profiling.
+      let timeStart = window.performance.now();
+      finishProfiling = () => {
+        const timeEnd = window.performance.now();
+        const duration = timeEnd - timeStart;
+        debug &&
+          console.log(
+            `[data-access:${queryName}:${cacheId}] request took ${duration}ms`,
+          );
+        if (
+          typeof constraints.maxDelay === 'number' &&
+          duration > constraints.maxDelay
+        ) {
+          debug &&
+            console.error(
+              `[data-access:${queryName}:${cacheId}] request timed out! Took ${duration -
+                constraints.maxDelay}ms longer than expected.`,
+            );
+          if (constraints.enforce) {
+            throw new ErrorTimedOut(queryName, cacheId);
+          }
+        }
+      };
+    }
 
     // Do we have a cached result?
-    const cacheIdString = configuration.cache.id({ args });
+    const {
+      dataAccess: { set, query: cacheQuery },
+    } = getCacheStore();
+    const cacheId = cache.id({ args });
 
     debug &&
-      console.log(
-        `[data-access:${queryName}:${cacheIdString}] execute request.`,
-      );
+      console.log(`[data-access:${queryName}:${cacheId}] execute request.`);
 
     debug &&
-      console.log(
-        `[data-access:${queryName}:${cacheIdString}] read data cache.`,
-      );
+      console.log(`[data-access:${queryName}:${cacheId}] read data cache.`);
 
-    const cacheRequestQuery = cacheQuery.get(cacheIdString);
-
-    // Tell suspense about promise to request backend data.
-    // Since this is a proxy designed to request data on access treat this as the real thing.
-    const proxy = new Proxy(
-      {},
-      {
-        get() {
-          debug &&
-            console.log(
-              `[data-access:${queryName}:${cacheIdString}] execute suspense!`,
-            );
-
-          // Wrap promise in suspense format.
-          return suspenseRequestQuery(cache, args);
-        },
-      },
-    ) as Data;
+    const cacheRequestQuery = cacheQuery.get(cacheId);
 
     // Do we have the data for this request already?
-    const cacheResult = configuration.cache.get({
-      cacheId: cacheIdString,
-      cache,
+    const cacheResult = cache.get({
+      cacheId: cacheId,
+      cache: getCacheStore,
       args,
-      request: (args: QueryRequest) => requestQueryPromise(cache, args),
+      request: (args: QueryRequest) => requestQueryPromise(getCacheStore, args),
     });
 
     // Did we make a request for this data already?
+    let result = null;
     if (
       cacheRequestQuery &&
       (cacheRequestQuery.promise as any).state.isQueryFinished
     ) {
       debug &&
         console.log(
-          `[data-access:${queryName}:${cacheIdString}] request query cache found.`,
+          `[data-access:${queryName}:${cacheId}] request query cache found.`,
         );
       // Do we need to invalidate the cache and request?
       if (Date.now() > cacheRequestQuery.cacheTimeToRefresh) {
         debug &&
           console.log(
-            `[data-access:${queryName}:${cacheIdString}] request cache expired.`,
+            `[data-access:${queryName}:${cacheId}] request cache expired.`,
           );
 
         // Cache reset for query & suspense.
@@ -328,40 +347,35 @@ export const createHook = <
             ({
               dataAccess: { suspense: cacheSuspense, query: cacheQuery },
             }) => {
-              cacheQuery.delete(cacheIdString);
-              cacheSuspense.delete(cacheIdString);
+              cacheQuery.delete(cacheId);
+              cacheSuspense.delete(cacheId);
             },
           ),
         );
       } else {
         if (cacheResult) {
-          debug &&
-            console.log(
-              `[data-access:${queryName}:${cacheIdString}] request data cache used.`,
-            );
-
-          return cacheResult;
+          result = cacheResult;
         }
       }
     } else {
       debug &&
         console.log(
-          `[data-access:${queryName}:${cacheIdString}] request query cache *not* found.`,
+          `[data-access:${queryName}:${cacheId}] request query cache *not* found.`,
         );
 
       // We haven't made this request before but can we prime it from cache?
-      if (configuration.cache.isPrimableFromCache && cacheResult) {
+      if (cache.isPrimableFromCache && cacheResult) {
         debug &&
           console.log(
-            `[data-access:${queryName}:${cacheIdString}] request query cache primed from data cache.`,
+            `[data-access:${queryName}:${cacheId}] request query cache primed from data cache.`,
           );
 
         // Cache with resolved cache result.
         set(
           produce<AccessorQueryCacheStore>(
             ({ dataAccess: { query: cacheQuery } }) => {
-              cacheQuery.set(cacheIdString, {
-                cacheTimeToRefresh: Date.now() + configuration.cache.duration,
+              cacheQuery.set(cacheId, {
+                cacheTimeToRefresh: Date.now() + cache.duration,
                 // NOTE: This request cache promise is never checked/used.
                 //       Only it's time to live property is relevant.
                 promise: null,
@@ -370,17 +384,40 @@ export const createHook = <
           ),
         );
 
-        debug &&
-          console.log(
-            `[data-access:${queryName}:${cacheIdString}] request data cache used for.`,
-          );
-
-        return cacheResult;
+        result = cacheResult;
       }
     }
 
-    return {
-      data: proxy,
-    };
+    if (result) {
+      debug &&
+        console.log(
+          `[data-access:${queryName}:${cacheId}] request data cache used.`,
+        );
+
+      return result;
+    } else {
+      // Tell suspense about promise to request backend data.
+      // Since this is a proxy designed to request data on access treat this as the real thing.
+      return {
+        data: new Proxy(
+          {},
+          {
+            get() {
+              debug &&
+                console.log(
+                  `[data-access:${queryName}:${cacheId}] execute suspense!`,
+                );
+
+              // Wrap promise in suspense format.
+              return suspenseRequestQuery({
+                getCacheStore,
+                onDone: finishProfiling,
+                args,
+              });
+            },
+          },
+        ) as Data,
+      };
+    }
   };
 };

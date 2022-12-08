@@ -1,22 +1,24 @@
-const path = require("path");
-const CircularDependencyPlugin = require("circular-dependency-plugin");
-const { DefinePlugin, NoEmitOnErrorsPlugin } = require("webpack");
+import path from 'path';
+import CircularDependencyPlugin from 'circular-dependency-plugin';
+import { DefinePlugin, NoEmitOnErrorsPlugin } from 'webpack';
 
 // NODE_ENV: 'development' | 'production'
 const NODE_ENV =
-  process.env.NODE_ENV !== "production" ? "development" : "production";
+  process.env.NODE_ENV !== 'production' ? 'development' : 'production';
 
 module.exports = {
-  target: "web",
+  target: 'web',
 
-  entry: "./src/index.tsx",
+  entry: './src/index.tsx',
 
   output: {
     pathinfo: true,
-    path: path.resolve(__dirname, "dist"),
-    publicPath: "/",
-    filename: "index.js",
-    libraryTarget: 'commonjs2'
+    path: path.resolve(__dirname, 'dist'),
+    publicPath: '/',
+    filename: 'index.js',
+    libraryTarget: 'umd',
+    library: 'BrowserRouter',
+    umdNamedDefine: true,
   },
 
   plugins: [
@@ -31,7 +33,7 @@ module.exports = {
   ],
 
   cache: {
-    type: "filesystem",
+    type: 'filesystem',
     allowCollectingMemory: true,
   },
 
@@ -40,18 +42,18 @@ module.exports = {
     concatenateModules: true,
     removeAvailableModules: false,
     removeEmptyChunks: false,
-    moduleIds: "named",
+    moduleIds: 'named',
   },
 
   module: {
     rules: [
       {
         test: /\.(js|ts|tsx)$/,
-        include: [path.join(__dirname, "src"), path.join(__dirname, "test")],
+        include: [path.join(__dirname, 'src'), path.join(__dirname, 'test')],
         exclude: /node_modules/,
         use: [
           {
-            loader: "ts-loader",
+            loader: 'ts-loader',
             options: {
               // Include type definition files.
               transpileOnly: false,
@@ -60,15 +62,15 @@ module.exports = {
         ],
       },
       {
-        enforce: "pre",
+        enforce: 'pre',
         test: /\.(js|ts|tsx)$/,
-        loader: "source-map-loader",
+        loader: 'source-map-loader',
       },
     ],
   },
 
   mode: NODE_ENV,
-  devtool: NODE_ENV === "development" ? "inline-source-map" : "source-map",
+  devtool: NODE_ENV === 'development' ? 'inline-source-map' : 'source-map',
 
   node: {
     __filename: true,
@@ -76,11 +78,30 @@ module.exports = {
   },
 
   resolve: {
-    modules: [path.resolve(__dirname, "node_modules"), "node_modules"],
-    extensions: [".ts", ".tsx", ".js", ".json"],
+    modules: [path.resolve(__dirname, 'node_modules'), 'node_modules'],
+    extensions: ['.ts', '.tsx', '.js', '.json'],
     fallback: {
-      path: require.resolve("path-browserify"),
+      path: require.resolve('path-browserify'),
+    },
+    alias: {
+      react: path.resolve(__dirname, './node_modules/react'),
+      'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
+    },
+  },
+
+  // Don't bundle `react` or `react-dom`.
+  externals: {
+    react: {
+      commonjs: 'react',
+      commonjs2: 'react',
+      amd: 'React',
+      root: 'React',
+    },
+    'react-dom': {
+      commonjs: 'react-dom',
+      commonjs2: 'react-dom',
+      amd: 'ReactDOM',
+      root: 'ReactDOM',
     },
   },
 };
-

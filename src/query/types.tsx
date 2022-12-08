@@ -24,6 +24,7 @@ export type AccessorQueryConfiguration<
   QueryResponse,
   Data
 > = {
+  debug?: boolean;
   cache: {
     duration: number;
     id: (args: { args: QueryRequest }) => string;
@@ -42,7 +43,10 @@ export type AccessorQueryConfiguration<
     }) => AccessorQueryResult<Data> | null;
     isPrimableFromCache: boolean;
   };
-  debug?: boolean;
+  constraints: {
+    enforce?: boolean;
+    maxDelay?: number;
+  };
   query: (
     args: QueryRequest,
   ) => Promise<AccessorQueryRequestResponse<QueryResponse>>;
@@ -58,3 +62,9 @@ export type AccessorQueryRequestResponse<T> = {
   data?: null | T;
   error?: string;
 };
+
+export class ErrorTimedOut extends Error {
+  constructor(queryName: string, cacheId: string) {
+    super(`Data accessor ${queryName} with id ${cacheId} timed out.`);
+  }
+}
