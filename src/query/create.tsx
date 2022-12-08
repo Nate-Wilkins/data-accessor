@@ -396,7 +396,7 @@ export const createHook = <
                 getCacheStore,
                 onDone: finishProfiling,
                 args,
-              });
+              })();
             },
           },
         ) as Data,
