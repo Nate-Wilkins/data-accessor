@@ -6,7 +6,8 @@
   "repository": "git@github.com:nate-wilkins/data-accessor.git",
   "license": "Apache-2.0",
   "scripts": {
-    "build": "rm -rf ./dist/ && ts-node ./node_modules/webpack/bin/webpack"
+    "build": "rm -rf ./dist/ && ts-node ./node_modules/webpack/bin/webpack",
+    "prepublish": "yarn run build"
   },
   "dependencies": {
     "@types/circular-dependency-plugin": "5.0.5",
