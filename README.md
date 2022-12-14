@@ -17,8 +17,7 @@ This package is designed to provide patterns to the following:
 - Data fetching/aggregation/resolution/updates
 - UI/UX loading states
 - UI/UX error states
-- Data cache
-- Data cache priming
+- Data cache & priming
 - Composable data fetching/aggregation/resolution/updates
 
 These patterns and practices should allow developers to work more confidently with their data.
