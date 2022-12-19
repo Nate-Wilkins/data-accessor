@@ -1,5 +1,11 @@
 # `data-accessor`
 
+[![npm](http://img.shields.io/npm/v/data-accessor.svg?style=flat-square)](https://www.npmjs.org/package/data-accessor)
+[![license](http://img.shields.io/badge/license-Apache-2.0-blue.svg?style=flat-square)](https://github.com/Nate-Wilkins/data-accessor/blob/main/LICENSE)
+[![status](https://img.shields.io/travis/Nate-Wilkins/data-accessor.svg?style=flat-square)](https://travis-ci.org/Nate-Wilkins/data-accessor)
+[![test coverage](https://img.shields.io/badge/test%20coverage-62%25-green?style=flat-square)](https://travis-ci.com/Nate-Wilkins/data-accessor)
+[![dependencies](https://badges.depfu.com/badges/d8b66f8525f8724877c53766ef13853e/count.svg)](https://badges.depfu.com/github/Nate-Wilkins/data-accessor?project_id=37340)
+
 > Data access layer for the frontend.
 
 ## Why?
@@ -68,7 +74,7 @@ type ResponseGetBooks = {
   paginationInfo: PaginationInfo,
 };
 
-type CacheStore = {
+interface CacheStore extends AccessorQuery.AccessorQueryCacheStore = {
   books: Map<string, Book>,
   paginationInfo: Map<string, PaginationInfo>
 };
@@ -139,10 +145,9 @@ const configuration: AccessorQueryConfiguration<
 > = {
   cache: {
     duration: 1000 * 60 * 10, // 10mins
-    garbageCollection: true,
     isPrimableFromCache: true,
-    id: ({ pageSize, category, cursor }) => {
-      return `getBooks#${pageSize}#category#${category}#cursor#${cursor}`;
+    id: ({ args }) => {
+      return `getBooks#${args.pageSize}#category#${args.category}#cursor#${args.cursor}`;
     },
     set: ({ cache, cacheId, response, request }) => {
       const store = cache();
@@ -227,19 +232,19 @@ const createCache = () => {
 ```typescript
 // 1. Accessor as a component. (recommended)
 //    Useful for declarative data access.
-export const AccessorGetCategories = accessorQuery.createComponent<
+export const AccessorGetBooks = accessorQuery.createComponent<
   State,
-  RequestGetCategories,
-  ResponseGetCategories,
+  RequestGetBooks,
+  ResponseGetBooks,
   Category[]
 >(configuration);
 
 // 2. Accessor as a hook.
 //    Useful if you are already used to data access as hooks.
-export const useGetCategories = accessorQuery.createHook<
+export const useGetBooks = accessorQuery.createHook<
   State,
-  RequestGetCategories,
-  ResponseGetCategories,
+  RequestGetBooks,
+  ResponseGetBooks,
   Category[]
 >(configuration);
 ```
@@ -380,10 +385,9 @@ const configuration: AccessorQueryConfiguration<
 > = {
   cache: {
     duration: 1000 * 60 * 10, // 10mins
-    garbageCollection: false,
     isPrimableFromCache: true,
-    id: ({ id }) => {
-      return `getBook#${id}`;
+    id: ({ args }) => {
+      return `getBook#${args.id}`;
     },
     set: ({ cache, cacheId, response, request }) => {
       const store = cache();

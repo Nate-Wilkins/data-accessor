@@ -52,7 +52,7 @@ export const createCache = (
  *   7. Otherwise create a new request and store it in the request cache.
  *   8. Once the request completes cache the result.
  *
- * @param.configuration.cache.duration                             - How long, in seconds, the accessor cache should be used for before being invalidated.
+ * @param.configuration.cache.duration                             - How long, in milliseconds, the accessor cache should be used for before being invalidated.
  * @param.configuration.cache.isPrimableFromCache <true>           - Determines if the accessor can be primed from the cache of other data accessors.
  *                                                                   Once primed the `configuration.cacheDuration` will be respected.
  * @param.configuration.cache.id                                   - Synchrounous get function used to reference the accessor cache.
@@ -67,7 +67,7 @@ export const createCache = (
  * @param.configuration.debug <false>                              - Turns logging on or off.
  * @param configuration.query                                      - Asynchrounous get function used to populate the accessor cache.
  *
- * @returns (cache: Cache, args: QueryRequest) => AccessorQueryResult<Data
+ * @returns (cache: TCache, args: TQueryRequest) => AccessorQueryResult<TData>
  * @param cache                                          - Where to store cache data for data access.
  * @param args                                           - Arguments to send to the query.
  *
@@ -88,20 +88,50 @@ export const createCache = (
  *   ```
  */
 export const createHook = <
-  Cache extends AccessorQueryCacheStore,
-  QueryRequest,
-  QueryResponse,
-  Data
+  TCache extends AccessorQueryCacheStore,
+  TQueryRequest,
+  TQueryResponse,
+  TData
 >({
   debug,
   cache,
   query,
   constraints,
-}: AccessorQueryConfiguration<Cache, QueryRequest, QueryResponse, Data>): ((
-  getCacheStore: () => Cache,
-  args: QueryRequest,
-) => AccessorQueryResult<Data>) => {
+}: AccessorQueryConfiguration<TCache, TQueryRequest, TQueryResponse, TData>): ((
+  getCacheStore: () => TCache,
+  args: TQueryRequest,
+) => AccessorQueryResult<TData>) => {
   const queryName = query.name;
+
+  // Validate configuration.
+  (() => {
+    if (typeof debug !== 'boolean') {
+      throw new Error('Invalid `debug` value. Must be a boolean.');
+    }
+    if (cache.duration <= 0) {
+      throw new Error(
+        'Invalid `cache.duration` value. Must be an integer greater than zero.',
+      );
+    }
+    if (typeof cache.id !== 'function') {
+      throw new Error('Invalid `cache.id` value. Must be a function.');
+    }
+    if (typeof cache.get !== 'function') {
+      throw new Error('Invalid `cache.get` value. Must be a function.');
+    }
+    if (typeof cache.set !== 'function') {
+      throw new Error('Invalid `cache.set` value. Must be a function.');
+    }
+    if (typeof cache.isPrimableFromCache !== 'boolean') {
+      throw new Error(
+        'Invalid `cache.isPrimableFromCache` value. Must be a boolean.',
+      );
+    }
+
+    if (typeof query !== 'function') {
+      throw new Error('Invalid `query` value. Must be a function.');
+    }
+  })();
 
   /*
    * Query promise.
@@ -111,12 +141,12 @@ export const createHook = <
     cacheId,
     args,
   }: {
-    getCacheStore: () => Cache;
+    getCacheStore: () => TCache;
     cacheId: string;
-    args: QueryRequest;
-  }): Promise<AccessorQueryResult<Data>> => {
-    let state = { isQueryFinished: false };
-    const promise: Promise<AccessorQueryResult<Data>> = (async () => {
+    args: TQueryRequest;
+  }): Promise<AccessorQueryResult<TData>> => {
+    const state = { isQueryFinished: false };
+    const promise: Promise<AccessorQueryResult<TData>> = (async () => {
       // Execute query.
       const response = await query(args);
       state.isQueryFinished = true;
@@ -125,7 +155,7 @@ export const createHook = <
       if (response.status !== 200 || response.error || !response.data) {
         throw new Error(
           `(${response.status}) Response failed${
-            response.error ? `: ${response.error}` : ''
+            response.error ? `: ${response.error}` : '.'
           }`,
         );
       }
@@ -135,7 +165,7 @@ export const createHook = <
         cacheId: cacheId,
         args,
         cache: getCacheStore,
-        request: (args: QueryRequest) =>
+        request: (args: TQueryRequest) =>
           requestQueryPromise(getCacheStore, args),
         response: { status: response.status, data: response.data },
       });
@@ -149,20 +179,27 @@ export const createHook = <
    * Request query promise.
    */
   const requestQueryPromise = (
-    getCacheStore: () => Cache,
-    args: QueryRequest,
-  ): Promise<AccessorQueryResult<Data>> => {
+    getCacheStore: () => TCache,
+    args: TQueryRequest,
+  ): Promise<AccessorQueryResult<TData>> => {
     const {
       dataAccess: { set, query: cacheQuery },
     } = getCacheStore();
 
-    // Do we have an existing query request promise in the cache?
+    // Get the cache id for this request.
     const cacheId = cache.id({ args });
 
     debug &&
       console.log(`[data-access:${queryName}:${cacheId}] read query cache.`);
 
-    const cacheQueryPromise = cacheQuery.get(cacheId)?.promise;
+    // Does our library have any errors that occurred?
+    const cacheQueryRequest = cacheQuery.get(cacheId);
+    if (cacheQueryRequest instanceof Error) {
+      throw cacheQueryRequest;
+    }
+
+    // Do we have an existing query request promise in the cache?
+    const cacheQueryPromise = cacheQueryRequest?.promise;
     if (cacheQueryPromise) {
       debug &&
         console.log(`[data-access:${queryName}:${cacheId}] query cache found.`);
@@ -177,7 +214,7 @@ export const createHook = <
     // Execute request query promise.
     debug &&
       console.log(`[data-access:${queryName}:${cacheId}] execute query.`);
-    const promise: Promise<AccessorQueryResult<Data>> = queryPromise({
+    const promise: Promise<AccessorQueryResult<TData>> = queryPromise({
       getCacheStore,
       cacheId,
       args,
@@ -204,10 +241,10 @@ export const createHook = <
     onDone,
     args,
   }: {
-    getCacheStore: () => Cache;
+    getCacheStore: () => TCache;
     onDone?: () => void;
-    args: QueryRequest;
-  }): (() => AccessorQueryResult<Data>) => {
+    args: TQueryRequest;
+  }): (() => AccessorQueryResult<TData>) => {
     const {
       dataAccess: { set, suspense: cacheSuspense },
     } = getCacheStore();
@@ -237,7 +274,7 @@ export const createHook = <
       console.log(
         `[data-access:${queryName}:${cacheId}] expecute query promise.`,
       );
-    const suspense: () => AccessorQueryResult<Data> = suspend(
+    const suspense: () => AccessorQueryResult<TData> = suspend(
       requestQueryPromise(getCacheStore, args).then(result => {
         onDone && onDone();
         return result;
@@ -262,14 +299,14 @@ export const createHook = <
    * Accessor hook.
    */
   return (
-    getCacheStore: () => Cache,
-    args: QueryRequest,
-  ): AccessorQueryResult<Data> => {
+    getCacheStore: () => TCache,
+    args: TQueryRequest,
+  ): AccessorQueryResult<TData> => {
     // Are we profiling?
     let finishProfiling: undefined | (() => void);
-    if (typeof constraints.maxDelay === 'number') {
+    if (typeof constraints?.maxDelay === 'number') {
       // Start profiling.
-      let timeStart = window.performance.now();
+      const timeStart = window.performance.now();
       finishProfiling = () => {
         const timeEnd = window.performance.now();
         const duration = timeEnd - timeStart;
@@ -305,28 +342,34 @@ export const createHook = <
     debug &&
       console.log(`[data-access:${queryName}:${cacheId}] read data cache.`);
 
-    const cacheRequestQuery = cacheQuery.get(cacheId);
+    const cacheQueryRequest = cacheQuery.get(cacheId);
 
     // Do we have the data for this request already?
     const cacheResult = cache.get({
       cacheId: cacheId,
       cache: getCacheStore,
       args,
-      request: (args: QueryRequest) => requestQueryPromise(getCacheStore, args),
+      request: (args: TQueryRequest) =>
+        requestQueryPromise(getCacheStore, args),
     });
 
+    // Does our library have any errors that occurred?
+    if (cacheQueryRequest instanceof Error) {
+      throw cacheQueryRequest;
+    }
+
     // Did we make a request for this data already?
-    let result = null;
+    let result: null | AccessorQueryResult<TData> = null;
     if (
-      cacheRequestQuery &&
-      (cacheRequestQuery.promise as any).state.isQueryFinished
+      cacheQueryRequest &&
+      (cacheQueryRequest.promise as any).state.isQueryFinished
     ) {
       debug &&
         console.log(
           `[data-access:${queryName}:${cacheId}] request query cache found.`,
         );
       // Do we need to invalidate the cache and request?
-      if (Date.now() > cacheRequestQuery.cacheTimeToRefresh) {
+      if (Date.now() > cacheQueryRequest.cacheTimeToRefresh) {
         debug &&
           console.log(
             `[data-access:${queryName}:${cacheId}] request cache expired.`,
@@ -394,12 +437,29 @@ export const createHook = <
               // Wrap promise in suspense format.
               return suspenseRequestQuery({
                 getCacheStore,
-                onDone: finishProfiling,
+                onDone: () => {
+                  // NOTE: When an error occurs after we've assigned the cache the cache result would be returned.
+                  //       But here we make sure that the cache returns an error.
+                  try {
+                    finishProfiling && finishProfiling();
+                  } catch (e) {
+                    if (e instanceof Error) {
+                      set(({ dataAccess: { query: cacheQuery } }) => {
+                        cacheQuery.set(cacheId, e as Error);
+                      });
+                    } else {
+                      // Should never happen.
+                      console.error(
+                        '[data-access]: A error object was not an error.',
+                      );
+                    }
+                  }
+                },
                 args,
               })();
             },
           },
-        ) as Data,
+        ) as TData,
       };
     }
   };

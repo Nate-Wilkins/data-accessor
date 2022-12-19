@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactNode } from 'react';
-import { createHook } from './create';
+import { createHook } from './create_hook';
 import {
   AccessorQueryCacheStore,
   AccessorQueryConfiguration,

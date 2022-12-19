@@ -9,7 +9,7 @@
  *   Only because this function will throw the promise error if there was one.
  *   Otherwise react won't know about the error.
  */
-export const suspend = <T,>(promise: Promise<T>) => {
+export const suspend = <T,>(promise: Promise<T>): (() => T) => {
   let result: T;
   let status = 'pending';
   const suspender = promise.then(

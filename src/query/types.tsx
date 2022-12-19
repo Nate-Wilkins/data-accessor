@@ -9,47 +9,48 @@ export type AccessorQueryCacheStore = {
     set: (store: AccessorQueryCacheStoreSet<AccessorQueryCacheStore>) => any;
     query: Map<
       string,
-      {
-        cacheTimeToRefresh: number;
-        promise: null | Promise<AccessorQueryResult<any>>;
-      }
+      | {
+          cacheTimeToRefresh: number;
+          promise: null | Promise<AccessorQueryResult<any>>;
+        }
+      | Error
     >;
     suspense: Map<string, () => AccessorQueryResult<any>>;
   };
 };
 
 export type AccessorQueryConfiguration<
-  Cache,
-  QueryRequest,
-  QueryResponse,
-  Data
+  TCache,
+  TQueryRequest,
+  TQueryResponse,
+  TData
 > = {
   debug?: boolean;
   cache: {
     duration: number;
-    id: (args: { args: QueryRequest }) => string;
+    id: (args: { args: TQueryRequest }) => string;
     set: (args: {
-      cache: () => Cache;
+      cache: () => TCache;
       cacheId: string;
-      args: QueryRequest;
-      request: (args: QueryRequest) => Promise<AccessorQueryResult<Data>>;
-      response: { status: number; data: QueryResponse };
-    }) => { data: Data };
+      args: TQueryRequest;
+      request: (args: TQueryRequest) => Promise<AccessorQueryResult<TData>>;
+      response: { status: number; data: TQueryResponse };
+    }) => { data: TData };
     get: (args: {
-      cache: () => Cache;
+      cache: () => TCache;
       cacheId: string;
-      args: QueryRequest;
-      request: (args: QueryRequest) => Promise<AccessorQueryResult<Data>>;
-    }) => AccessorQueryResult<Data> | null;
+      args: TQueryRequest;
+      request: (args: TQueryRequest) => Promise<AccessorQueryResult<TData>>;
+    }) => AccessorQueryResult<TData> | null;
     isPrimableFromCache: boolean;
   };
-  constraints: {
+  constraints?: {
     enforce?: boolean;
     maxDelay?: number;
   };
   query: (
-    args: QueryRequest,
-  ) => Promise<AccessorQueryRequestResponse<QueryResponse>>;
+    args: TQueryRequest,
+  ) => Promise<AccessorQueryRequestResponse<TQueryResponse>>;
 };
 
 export type AccessorQueryResult<T> = {
@@ -65,6 +66,6 @@ export type AccessorQueryRequestResponse<T> = {
 
 export class ErrorTimedOut extends Error {
   constructor(queryName: string, cacheId: string) {
-    super(`Data accessor ${queryName} with id ${cacheId} timed out.`);
+    super(`Data accessor '${queryName}' with id '${cacheId}' timed out.`);
   }
 }

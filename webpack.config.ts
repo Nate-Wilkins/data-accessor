@@ -1,6 +1,6 @@
-import path from 'path';
-import CircularDependencyPlugin from 'circular-dependency-plugin';
 import { DefinePlugin, NoEmitOnErrorsPlugin } from 'webpack';
+import CircularDependencyPlugin from 'circular-dependency-plugin';
+import path from 'path';
 
 // NODE_ENV: 'development' | 'production'
 const NODE_ENV =
