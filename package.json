@@ -7,7 +7,6 @@
   "license": "Apache-2.0",
   "scripts": {
     "build": "rm -rf ./dist/ && ts-node ./node_modules/webpack/bin/webpack",
-    "prepublish": "yarn run build",
     "test:lint": "yarn eslint --ext .jsx,.js,.ts,.tsx ./",
     "test": "yarn jest --coverage && yarn test:lint"
   },
