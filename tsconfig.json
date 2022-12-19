@@ -16,7 +16,8 @@
     "experimentalDecorators": true,
     "esModuleInterop": true,
     "baseUrl": ".",
-    "outDir": "dist"
+    "outDir": "dist",
+    "skipLibCheck": true
   },
   "include": ["src/**/*.tsx", "src/**/*.ts", "typings/**/*.d.ts"],
   "exclude": ["node_modules", "**/*.test.ts", "**/lib", "**/dist"]
