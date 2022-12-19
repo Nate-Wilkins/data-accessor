@@ -6,7 +6,7 @@
   "repository": "git@github.com:nate-wilkins/data-accessor.git",
   "license": "Apache-2.0",
   "scripts": {
-    "build": "rm -rf ./dist/ && ts-node ./node_modules/webpack/bin/webpack",
+    "build": "rm -rf ./dist/ && rm -f ./node_modules/parse5/dist/index.d.ts && ts-node ./node_modules/webpack/bin/webpack",
     "test:lint": "yarn eslint --ext .jsx,.js,.ts,.tsx ./",
     "test": "yarn jest --coverage && yarn test:lint"
   },
