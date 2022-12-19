@@ -1,7 +1,7 @@
 # `data-accessor`
 
 [![npm](http://img.shields.io/npm/v/data-accessor.svg?style=flat-square)](https://www.npmjs.org/package/data-accessor)
-[![license](http://img.shields.io/badge/license-Apache-2.0-blue.svg?style=flat-square)](https://github.com/Nate-Wilkins/data-accessor/blob/main/LICENSE)
+[![license](https://img.shields.io/npm/l/data-accessor?style=flat-square)](https://github.com/Nate-Wilkins/data-accessor/blob/main/LICENSE)
 [![status](https://img.shields.io/travis/Nate-Wilkins/data-accessor.svg?style=flat-square)](https://travis-ci.org/Nate-Wilkins/data-accessor)
 [![test coverage](https://img.shields.io/badge/test%20coverage-62%25-green?style=flat-square)](https://travis-ci.com/Nate-Wilkins/data-accessor)
 [![dependencies](https://badges.depfu.com/badges/d8b66f8525f8724877c53766ef13853e/count.svg)](https://badges.depfu.com/github/Nate-Wilkins/data-accessor?project_id=37340)

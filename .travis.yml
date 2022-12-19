@@ -1,5 +1,8 @@
 language: node_js
 node_js:
-  - "12.10.0"
-install: npm install
-
+  - "16.14.2"
+cache:
+  yarn: true
+  directories:
+    - node_modules
+install: yarn install

@@ -55,6 +55,7 @@ module.exports = {
           {
             loader: 'ts-loader',
             options: {
+              configFile: path.join(__dirname, 'tsconfig.json'),
               // Include type definition files.
               transpileOnly: false,
             },
