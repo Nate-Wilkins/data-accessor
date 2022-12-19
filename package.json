@@ -1,13 +1,12 @@
 {
   "name": "data-accessor",
-  "version": "7.0.0",
+  "version": "8.0.0",
   "description": "Simple data access layer for the frontend.",
   "main": "dist/index.js",
   "repository": "git@github.com:nate-wilkins/data-accessor.git",
   "license": "Apache-2.0",
   "scripts": {
-    "build": "rm -rf ./dist/ && ts-node ./node_modules/webpack/bin/webpack",
-    "prepublish": "yarn run build",
+    "build": "rm -rf ./dist/ && rm -f ./node_modules/parse5/dist/index.d.ts && ts-node ./node_modules/webpack/bin/webpack",
     "test:lint": "yarn eslint --ext .jsx,.js,.ts,.tsx ./",
     "test": "yarn jest --coverage && yarn test:lint"
   },
@@ -37,7 +36,7 @@
     "react-dom": "18.2.0",
     "source-map-loader": "2.0.1",
     "ts-jest": "29.0.3",
-    "ts-loader": "9.1.1",
+    "ts-loader": "9.4.2",
     "ts-node": "9.1.1",
     "typescript": "4.9.4",
     "webpack": "5.38.1",
