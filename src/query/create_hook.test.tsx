@@ -138,7 +138,7 @@ export const createQueryConfiguration = (overrides: {
 const resolveSuspense = async (callback: () => void) => {
   try {
     callback();
-  } catch (ePromise) {
+  } catch (ePromise: any) {
     if (ePromise.then) {
       await ePromise;
       callback();

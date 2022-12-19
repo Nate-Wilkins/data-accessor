@@ -33,7 +33,7 @@ test('when running a promise suspended status, the promise should be thrown', as
     status();
 
     throw new Error('Status should have thrown.');
-  } catch (ePromise) {
+  } catch (ePromise: any) {
     // Then the promise was thrown.
     // eslint-disable-next-line jest/no-try-expect
     expect(ePromise.then).toBeDefined();
