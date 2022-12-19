@@ -517,9 +517,6 @@ The accessors also have the ability to add constraints. These constraints are de
 Here is an example where the `maxDelay` constraint is added and `enforce` is also set to throw `ErrorTimedOut` errors
 when the duration of the accessor call is over `maxDelay`. Feel free to turn this off/on for production/development.
 
-Usually these types of constraints should be on your API though. That way your API server can free up resources for
-other requests.
-
 ```typescript
 import { AccessorQuery, AccessorQueryConfiguration } from 'data-accessor';
 import * as api from 'http_api';
@@ -565,4 +562,3 @@ for the examples shown above:
 ## TODO:
 
 - Make an accessor query callback stack analyzer.
-- Add an SLA option to the accessor query configuration, if present check SLA for request.
