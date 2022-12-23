@@ -2399,10 +2399,10 @@ eslint-plugin-jest@23.8.2:
   dependencies:
     "@typescript-eslint/experimental-utils" "^2.5.0"
 
-eslint-plugin-jsort@1.1.2:
-  version "1.1.2"
-  resolved "https://registry.npmjs.org/eslint-plugin-jsort/-/eslint-plugin-jsort-1.1.2.tgz#27d09eb80ef661bc8429118e6644f23537feea71"
-  integrity sha512-eatwC2LIrQNiRbP/NP3d8rE29ofLRGeS5sK6cvD50ZVwaXdaae4vM2WK3nQfufGqxuANRyjl9yCtmX/TkRrjgA==
+eslint-plugin-jsort@1.1.3:
+  version "1.1.3"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-jsort/-/eslint-plugin-jsort-1.1.3.tgz#2b8d174d0d731ffc66d782134777834210970914"
+  integrity sha512-Q0JNg60K3Kl+/Gekj7ZwVGdFrzrvOipX4jZYBPh0MLCB83NfKTH11fyqw+zAwMl1Z9swKxAvNqmlx8IaJ21DYw==
 
 eslint-plugin-prettier@4.0.0:
   version "4.0.0"
