@@ -46,11 +46,9 @@ test('when using a accessor query component without an initial cache result, the
 
   // When using the accessor hook.
   const queries = render(
-    <>
-      <Component cache={() => cache} args={{ id: data.book.id }}>
-        {renderData}
-      </Component>
-    </>,
+    <Component cache={() => cache} args={{ id: data.book.id }}>
+      {renderData}
+    </Component>,
   );
 
   // Then the user is shown the book ID.
@@ -99,11 +97,9 @@ test('when using a accessor query component with an initial cache result, then t
 
   // When using the accessor hook.
   const queries = render(
-    <>
-      <Component cache={() => cache} args={{ id: data.book.id }}>
-        {renderData}
-      </Component>
-    </>,
+    <Component cache={() => cache} args={{ id: data.book.id }}>
+      {renderData}
+    </Component>,
   );
 
   // Then the user is shown the book ID.
