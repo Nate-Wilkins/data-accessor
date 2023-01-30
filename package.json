@@ -32,7 +32,7 @@
     "jest-environment-jsdom": "29.3.1",
     "np": "7.6.2",
     "path-browserify": "1.0.1",
-    "prettier": "2.8.1",
+    "prettier": "2.8.3",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "source-map-loader": "4.0.1",
