@@ -91,7 +91,7 @@ export const createHook = <
   TCache extends AccessorQueryCacheStore,
   TQueryRequest,
   TQueryResponse,
-  TData
+  TData,
 >({
   debug,
   cache,
@@ -259,7 +259,7 @@ export const createHook = <
     if (cacheRequestSuspense) {
       debug &&
         console.log(
-          `[data-access:${queryName}:${cacheId}] suspense cache found for.`,
+          `[data-access:${queryName}:${cacheId}] suspense cache found.`,
         );
       return cacheRequestSuspense;
     } else {
@@ -320,8 +320,9 @@ export const createHook = <
         ) {
           debug &&
             console.error(
-              `[data-access:${queryName}:${cacheId}] request timed out! Took ${duration -
-                constraints.maxDelay}ms longer than expected.`,
+              `[data-access:${queryName}:${cacheId}] request timed out! Took ${
+                duration - constraints.maxDelay
+              }ms longer than expected.`,
             );
           if (constraints.enforce) {
             throw new ErrorTimedOut(queryName, cacheId);
