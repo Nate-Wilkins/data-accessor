@@ -34,14 +34,14 @@ export interface CacheStore extends AccessorQueryCacheStore {
  * Creates a cache store.
  */
 export const createCacheStore = (): CacheStore => {
-  const cache = {
+  const cacheStore = {
     ...createCache(setter => {
-      setter(cache);
+      setter(cacheStore);
     }),
     books: new Map<string, Book>(),
   };
 
-  return cache;
+  return cacheStore;
 };
 
 /*
