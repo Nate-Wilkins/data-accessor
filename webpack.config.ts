@@ -6,7 +6,7 @@ import path from 'path';
 const NODE_ENV =
   process.env.NODE_ENV !== 'production' ? 'development' : 'production';
 
-module.exports = {
+export default {
   target: 'web',
 
   entry: './src/index.tsx',
@@ -16,9 +16,7 @@ module.exports = {
     path: path.resolve(__dirname, 'dist'),
     publicPath: '/',
     filename: 'index.js',
-    libraryTarget: 'umd',
-    library: 'BrowserRouter',
-    umdNamedDefine: true,
+    libraryTarget: 'commonjs',
   },
 
   plugins: [
@@ -32,10 +30,13 @@ module.exports = {
     new NoEmitOnErrorsPlugin(),
   ],
 
-  cache: {
-    type: 'filesystem',
-    allowCollectingMemory: true,
-  },
+  cache:
+    NODE_ENV === 'development'
+      ? {
+          type: 'filesystem',
+          allowCollectingMemory: true,
+        }
+      : undefined,
 
   optimization: {
     minimize: true,
