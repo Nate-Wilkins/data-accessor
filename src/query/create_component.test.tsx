@@ -53,7 +53,7 @@ test('when using a accessor query component without an initial cache result, the
 
   // Then the user is shown the book ID.
   await waitFor(() =>
-    expect(queries.queryAllByText(/Book ID: 0/)).toBeTruthy(),
+    expect(queries.queryAllByText(/Book ID: 0/).length).toBeTruthy(),
   );
 
   // Then the query did execute.
@@ -104,7 +104,7 @@ test('when using a accessor query component with an initial cache result, then t
 
   // Then the user is shown the book ID.
   await waitFor(() =>
-    expect(queries.queryAllByText(/Book ID: 0/)).toBeTruthy(),
+    expect(queries.queryAllByText(/Book ID: 0/).length).toBeTruthy(),
   );
 
   // Then the query did *not* execute.
