@@ -16,6 +16,7 @@ test('when suspending a promise, then the status function should be created', as
 
   // Cleanup.
   resolver.resolve = true;
+  jest.advanceTimersByTime(1000);
   await promise;
 });
 
@@ -41,6 +42,7 @@ test('when running a promise suspended status, the promise should be thrown', as
 
   // Cleanup.
   resolver.resolve = true;
+  jest.advanceTimersByTime(1000);
   await promise;
 });
 
@@ -54,6 +56,7 @@ test('when running a promise suspended status that has completed, then the resul
   const status = suspend(promise);
 
   // And the promise completed.
+  jest.advanceTimersByTime(1000);
   await promise;
 
   // When running the promise suspended status.
@@ -75,6 +78,7 @@ test('when running a promise suspended status that has errored, then that error 
   // And the promise has completed.
   const promiseExecuteResolve = async () => {
     resolver.resolve = true;
+    jest.advanceTimersByTime(1000);
     await promise;
   };
 

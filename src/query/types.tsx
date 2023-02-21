@@ -23,6 +23,36 @@ export type AccessorQueryCacheStore = {
   };
 };
 
+type AccessorQueryConfigurationCacheSet<
+  TCache,
+  TQueryRequest,
+  TQueryResponse,
+  TData,
+> = (args: {
+  cache: () => TCache;
+  cacheId: string;
+  args: TQueryRequest;
+  request: (
+    args: TQueryRequest,
+  ) => Promise<AccessorQueryResultCacheSetResult<TData>>;
+  response: { status: number; data: TQueryResponse };
+}) => { data: TData };
+
+type AccessorQueryConfigurationCacheGet<TCache, TQueryRequest, TData> = (args: {
+  cache: () => TCache;
+  cacheId: string;
+  args: TQueryRequest;
+  request: (
+    args: TQueryRequest,
+  ) => Promise<AccessorQueryResultCacheSetResult<TData>>;
+}) => AccessorQueryResultCacheSetResult<TData> | null;
+
+type AccessorQueryConfigurationCacheClear<TCache, TQueryRequest> = (args: {
+  cacheId: string;
+  args: TQueryRequest;
+  set: (store: AccessorQueryCacheStoreSet<TCache>) => any;
+}) => void;
+
 export type AccessorQueryConfiguration<
   TCache,
   TQueryRequest,
@@ -37,32 +67,18 @@ export type AccessorQueryConfiguration<
 
     id: (args: { args: TQueryRequest }) => string;
 
-    invalidate?: { auto?: { enabled: boolean; interval?: number } };
+    invalidate?: { auto?: { enable: boolean; interval?: number } };
 
-    set: (args: {
-      cache: () => TCache;
-      cacheId: string;
-      args: TQueryRequest;
-      request: (
-        args: TQueryRequest,
-      ) => Promise<AccessorQueryResultCacheSetResult<TData>>;
-      response: { status: number; data: TQueryResponse };
-    }) => { data: TData };
+    set: AccessorQueryConfigurationCacheSet<
+      TCache,
+      TQueryRequest,
+      TQueryResponse,
+      TData
+    >;
 
-    get: (args: {
-      cache: () => TCache;
-      cacheId: string;
-      args: TQueryRequest;
-      request: (
-        args: TQueryRequest,
-      ) => Promise<AccessorQueryResultCacheSetResult<TData>>;
-    }) => AccessorQueryResultCacheSetResult<TData> | null;
+    get: AccessorQueryConfigurationCacheGet<TCache, TQueryRequest, TData>;
 
-    clear: (args: {
-      cache: () => TCache;
-      cacheId: string;
-      args: TQueryRequest;
-    }) => void;
+    clear: AccessorQueryConfigurationCacheClear<TCache, TQueryRequest>;
   };
   constraints?: {
     enforce?: boolean;

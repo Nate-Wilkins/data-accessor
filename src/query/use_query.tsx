@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   AccessorQueryCacheStore,
+  AccessorQueryCacheStoreSet,
   AccessorQueryConfiguration,
   AccessorQueryContext,
   AccessorQueryResult,
@@ -112,7 +113,11 @@ export const useQuery = <
 
   // Cache auto invalidation.
   useEffect(() => {
-    if (!cache.invalidate || !cache.invalidate.auto) {
+    if (
+      !cache.invalidate ||
+      !cache.invalidate.auto ||
+      !cache.invalidate.auto.enable
+    ) {
       return;
     }
 
@@ -248,7 +253,13 @@ export const useQuery = <
     });
 
     // Clear accessor cache for data.
-    cache.clear({ cache: getCacheStore, cacheId, args });
+    cache.clear({
+      cacheId,
+      args,
+
+      // Stored as correct setter, cast semi-safely.
+      set: set as (store: AccessorQueryCacheStoreSet<TCache>) => any,
+    });
   };
 
   // Allow accessor result to invalidate.

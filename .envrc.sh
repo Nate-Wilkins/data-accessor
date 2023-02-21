@@ -65,8 +65,10 @@ function reset() {
 #
 function install() {
   check --env develop
-  yarn install
-  yarn run yarn-deduplicate
+  if [[ $? -eq 0 ]]; then
+    yarn install
+    yarn run yarn-deduplicate
+  fi
 }
 
 #
@@ -91,7 +93,9 @@ function lint() {
 #
 function test() {
   check --env develop
-  yarn test
+  if [[ $? -eq 0 ]]; then
+    yarn test
+  fi
 }
 
 #
@@ -99,7 +103,9 @@ function test() {
 #
 function publish() {
   check --env release
-  yarn publish $@
+  if [[ $? -eq 0 ]]; then
+    yarn publish $@
+  fi
 }
 
 #
@@ -107,7 +113,9 @@ function publish() {
 #
 function distributable_size() {
   check --env release
-  dust "./dist"
+  if [[ $? -eq 0 ]]; then
+    dust "./dist"
+  fi
 }
 
 #

@@ -112,10 +112,10 @@ export const createQueryConfiguration = (overrides: {
 
         return null;
       },
-      clear: ({ cache, args }): void => {
-        const store = cache();
-
-        store.books.delete(args.id);
+      clear: ({ args, set }): void => {
+        set(({ books }) => {
+          books.delete(args.id);
+        });
       },
       ...overrides.cache,
     } as AccessorQueryConfiguration<

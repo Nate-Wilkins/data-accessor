@@ -20,15 +20,20 @@ test('when using a accessor query hook without an initial cache result, then the
 
   // And a query response.
   const data = { book: { id: '0', title: 'My Book', authorId: '3' } };
-  const query = jest.fn(() =>
-    createPromise<Response<ResponseBook>>(
+  const query = jest.fn(() => {
+    const promise = createPromise<Response<ResponseBook>>(
       { resolve: true },
       {
         status: 200,
         data,
       },
-    ),
-  );
+    );
+
+    // Complete the proimse.
+    jest.advanceTimersByTime(1000);
+
+    return promise;
+  });
 
   // And a accessor query configuration.
   // And the cache result is *not* initially available.
@@ -69,15 +74,20 @@ test('when using a accessor query hook with an initial cache result and isPrimab
       authorId: '4',
     },
   };
-  const query = jest.fn(() =>
-    createPromise<Response<ResponseBook>>(
+  const query = jest.fn(() => {
+    const promise = createPromise<Response<ResponseBook>>(
       { resolve: true },
       {
         status: 200,
         data,
       },
-    ),
-  );
+    );
+
+    // Complete the proimse.
+    jest.advanceTimersByTime(1000);
+
+    return promise;
+  });
 
   // And the cache result is initially available.
   cache.books.set('0', data.book);
@@ -122,15 +132,20 @@ test('when using a accessor query hook with an initial cache result and isPrimab
       authorId: '3',
     },
   };
-  const query = jest.fn(() =>
-    createPromise<Response<ResponseBook>>(
+  const query = jest.fn(() => {
+    const promise = createPromise<Response<ResponseBook>>(
       { resolve: true },
       {
         status: 200,
         data,
       },
-    ),
-  );
+    );
+
+    // Complete the proimse.
+    jest.advanceTimersByTime(1000);
+
+    return promise;
+  });
 
   // And the cache result is initially available.
   cache.books.set('0', {
@@ -174,12 +189,17 @@ test('when using a accessor query hook with a query that errors, then the query 
   const cache = createCacheStore();
 
   // And a query response that errors.
-  const query = jest.fn(() =>
-    createPromise<Response<ResponseBook>>(
+  const query = jest.fn(() => {
+    const promise = createPromise<Response<ResponseBook>>(
       { resolve: true },
       new Error('Network call error.'),
-    ),
-  );
+    );
+
+    // Complete the proimse.
+    jest.advanceTimersByTime(1000);
+
+    return promise;
+  });
 
   // And a accessor query configuration.
   const configuration = createQueryConfiguration({
@@ -218,15 +238,20 @@ test('when using a accessor query hook with a query response of a non-200 status
       authorId: '3',
     },
   };
-  const query = jest.fn(() =>
-    createPromise<Response<ResponseBook>>(
+  const query = jest.fn(() => {
+    const promise = createPromise<Response<ResponseBook>>(
       { resolve: true },
       {
         status: 500,
         data,
       },
-    ),
-  );
+    );
+
+    // Complete the proimse.
+    jest.advanceTimersByTime(1000);
+
+    return promise;
+  });
 
   // And a accessor query configuration.
   const configuration = createQueryConfiguration({
@@ -259,15 +284,20 @@ test('when using a accessor query hook with a query response of a 200 status cod
 
   // And a query response with a 200 status code.
   // And a query response with a error text
-  const query = jest.fn(() =>
-    createPromise<Response<ResponseBook>>(
+  const query = jest.fn(() => {
+    const promise = createPromise<Response<ResponseBook>>(
       { resolve: true },
       {
         status: 200,
         error: 'A validation error occurred.',
       },
-    ),
-  );
+    );
+
+    // Complete the proimse.
+    jest.advanceTimersByTime(1000);
+
+    return promise;
+  });
 
   // And a accessor query configuration.
   const configuration = createQueryConfiguration({
@@ -307,12 +337,19 @@ test('when using a accessor query hook with a query response that takes longer t
       authorId: '3',
     },
   };
-  const resolver = { resolve: true };
   const query = jest.fn(() => {
-    return createPromise<Response<ResponseBook>>(resolver, {
-      status: 200,
-      data,
-    });
+    const promise = createPromise<Response<ResponseBook>>(
+      { resolve: true },
+      {
+        status: 200,
+        data,
+      },
+    );
+
+    // Complete the proimse.
+    jest.advanceTimersByTime(1000);
+
+    return promise;
   });
 
   // And a accessor query configuration.
@@ -349,15 +386,20 @@ test('when invalidating an accessor query hook, then the cache should invalidate
 
   // And a query response.
   const data = { book: { id: '0', title: 'My Book', authorId: '3' } };
-  const query = jest.fn(() =>
-    createPromise<Response<ResponseBook>>(
+  const query = jest.fn(() => {
+    const promise = createPromise<Response<ResponseBook>>(
       { resolve: true },
       {
         status: 200,
         data,
       },
-    ),
-  );
+    );
+
+    // Complete the proimse.
+    jest.advanceTimersByTime(1000);
+
+    return promise;
+  });
 
   // And the cache result is initially available.
   cache.books.set('0', data.book);
@@ -414,15 +456,20 @@ test('when auto invalidating an accessor query hook, then the cache should inval
 
   // And a query response.
   const data = { book: { id: '0', title: 'My Book', authorId: '3' } };
-  const query = jest.fn(() =>
-    createPromise<Response<ResponseBook>>(
+  const query = jest.fn(() => {
+    const promise = createPromise<Response<ResponseBook>>(
       { resolve: true },
       {
         status: 200,
         data,
       },
-    ),
-  );
+    );
+
+    // Complete the proimse.
+    jest.advanceTimersByTime(1000);
+
+    return promise;
+  });
 
   // And the cache result is initially available.
   cache.books.set('0', data.book);
@@ -431,7 +478,7 @@ test('when auto invalidating an accessor query hook, then the cache should inval
   const configuration = createQueryConfiguration({
     query,
     cache: {
-      invalidate: { auto: { enabled: true, interval: 3000 } },
+      invalidate: { auto: { enable: true, interval: 3000 } },
     },
   });
   const accessor = createAccessor(configuration);
@@ -473,8 +520,7 @@ test('when auto invalidating an accessor query hook, then the cache should inval
   expect(renderData).toHaveBeenCalledTimes(2);
 
   // Then the invalidation trigger was setup correctly.
-  // NOTE: setInterval is called internally by React as well.
   expect(setInterval).toHaveBeenCalledTimes(2);
   expect(setInterval).toHaveBeenNthCalledWith(1, expect.any(Function), 3000);
-  expect(setInterval).toHaveBeenNthCalledWith(2, expect.any(Function), 50);
+  expect(setInterval).toHaveBeenNthCalledWith(2, expect.any(Function), 1000);
 });

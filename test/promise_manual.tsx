@@ -18,6 +18,6 @@ export const create = async <T,>(
       } else {
         resolve(dataOrError);
       }
-    }, 50);
+    }, 1000);
   });
 };
