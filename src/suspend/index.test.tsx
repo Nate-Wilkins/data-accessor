@@ -1,4 +1,4 @@
-import { create as createPromise } from '../../test/promiseManual';
+import { create as createPromise } from '../../test/promise_manual';
 import { suspend } from './index';
 
 test('when suspending a promise, then the status function should be created', async () => {

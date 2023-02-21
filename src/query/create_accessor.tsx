@@ -52,6 +52,9 @@ export const createAccessor = <
     if (typeof cache.set !== 'function') {
       throw new Error('Invalid `cache.set` value. Must be a function.');
     }
+    if (typeof cache.clear !== 'function') {
+      throw new Error('Invalid `cache.clear` value. Must be a function.');
+    }
     if (typeof cache.isPrimableFromCache !== 'boolean') {
       throw new Error(
         'Invalid `cache.isPrimableFromCache` value. Must be a boolean.',

@@ -1,11 +1,10 @@
 import React, { FunctionComponent, ReactNode } from 'react';
-import { createAccessor } from './create_accessor';
+import { createHook } from './create_hook';
 import {
   AccessorQueryCacheStore,
   AccessorQueryConfiguration,
   AccessorQueryResult,
 } from './types';
-import { useQuery } from './use_query';
 
 type Props<Cache, QueryRequest, Data> = {
   cache: () => Cache;
@@ -34,12 +33,20 @@ export const createComponent = <
   >,
 ): FunctionComponent<Props<Cache, QueryRequest, Data>> => {
   // Accessor.
-  const accessor = createAccessor(configuration);
+  const useAccessorQuery = createHook(configuration);
 
   // Component.
-  return ({ children, cache, args }) => {
-    const accessorResult = useQuery(accessor, cache, args);
+  const Component: FunctionComponent<Props<Cache, QueryRequest, Data>> = ({
+    children,
+    cache,
+    args,
+  }) => {
+    const accessorResult = useAccessorQuery(cache, args);
 
     return <>{children(accessorResult)}</>;
   };
+
+  // NOTE: To create a HOC like this we need to explicitly define a function component.
+  //       This avoids the whole "Invalid hook call" error.
+  return Component;
 };
