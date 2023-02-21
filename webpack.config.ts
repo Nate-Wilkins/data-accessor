@@ -9,13 +9,15 @@ const NODE_ENV =
 export default {
   target: 'web',
 
-  entry: './src/index.tsx',
+  entry: {
+    index: './src/index.tsx',
+  },
 
   output: {
     pathinfo: true,
     path: path.resolve(__dirname, 'dist'),
     publicPath: '/',
-    filename: 'index.js',
+    filename: '[name].js',
     libraryTarget: 'commonjs',
   },
 
