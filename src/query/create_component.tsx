@@ -1,10 +1,11 @@
 import React, { FunctionComponent, ReactNode } from 'react';
-import { createHook } from './create_hook';
+import { createAccessor } from './create_accessor';
 import {
   AccessorQueryCacheStore,
   AccessorQueryConfiguration,
   AccessorQueryResult,
 } from './types';
+import { useQuery } from './use_query';
 
 type Props<Cache, QueryRequest, Data> = {
   cache: () => Cache;
@@ -23,7 +24,7 @@ export const createComponent = <
   Cache extends AccessorQueryCacheStore,
   QueryRequest,
   QueryResponse,
-  Data
+  Data,
 >(
   configuration: AccessorQueryConfiguration<
     Cache,
@@ -33,11 +34,11 @@ export const createComponent = <
   >,
 ): FunctionComponent<Props<Cache, QueryRequest, Data>> => {
   // Accessor.
-  const useAccessor = createHook(configuration);
+  const accessor = createAccessor(configuration);
 
   // Component.
   return ({ children, cache, args }) => {
-    const accessorResult = useAccessor(cache, args);
+    const accessorResult = useQuery(accessor, cache, args);
 
     return <>{children(accessorResult)}</>;
   };

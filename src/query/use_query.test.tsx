@@ -1,10 +1,12 @@
 import { create as createPromise } from '../../test/promiseManual';
-import { createCache, createHook } from './create_hook';
+import { createAccessor } from './create_accessor';
+import { createCache } from './create_cache';
 import {
   AccessorQueryCacheStore,
   AccessorQueryConfiguration,
-  AccessorQueryResult,
+  AccessorQueryResultCacheSetResult,
 } from './types';
+import { useQuery } from './use_query';
 
 export type Book = {
   id: string;
@@ -93,7 +95,10 @@ export const createQueryConfiguration = (overrides: {
 
         return { data: book };
       },
-      get: ({ cache, args }): AccessorQueryResult<Book> | null => {
+      get: ({
+        cache,
+        args,
+      }): AccessorQueryResultCacheSetResult<Book> | null => {
         const store = cache();
 
         // Get cache.
@@ -169,11 +174,11 @@ test('when using a accessor query hook without an initial cache result, then the
   const configuration = createQueryConfiguration({
     query,
   });
-  const hook = createHook(configuration);
+  const accessor = createAccessor(configuration);
 
   await resolveSuspense(() => {
     // When using the accessor hook.
-    const result = hook(() => cache, { id: '0' });
+    const result = useQuery(accessor, () => cache, { id: '0' });
     JSON.stringify(result.data); // Need to "evaluate" the proxy if it is one.
 
     // Then the result data is correct.
@@ -217,11 +222,11 @@ test('when using a accessor query hook with an initial cache result and isPrimab
     },
     query,
   });
-  const hook = createHook(configuration);
+  const accessor = createAccessor(configuration);
 
   await resolveSuspense(() => {
     // When using the accessor hook.
-    const result = hook(() => cache, { id: '0' });
+    const result = useQuery(accessor, () => cache, { id: '0' });
     JSON.stringify(result.data); // Need to "evaluate" the proxy if it is one.
 
     // Then the result data is correct.
@@ -269,11 +274,11 @@ test('when using a accessor query hook with an initial cache result and isPrimab
     },
     query,
   });
-  const hook = createHook(configuration);
+  const accessor = createAccessor(configuration);
 
   await resolveSuspense(() => {
     // When using the accessor hook.
-    const result = hook(() => cache, { id: '0' });
+    const result = useQuery(accessor, () => cache, { id: '0' });
     JSON.stringify(result.data); // Need to "evaluate" the proxy if it is one.
 
     // Then the result data is correct.
@@ -300,11 +305,11 @@ test('when using a accessor query hook with a query that errors, then the query 
   const configuration = createQueryConfiguration({
     query,
   });
-  const hook = createHook(configuration);
+  const accessor = createAccessor(configuration);
 
   const promiseExecute = resolveSuspense(() => {
     // When using the accessor hook.
-    const result = hook(() => cache, { id: '0' });
+    const result = useQuery(accessor, () => cache, { id: '0' });
     JSON.stringify(result.data); // Need to "evaluate" the proxy if it is one.
   });
 
@@ -341,11 +346,11 @@ test('when using a accessor query hook with a query response of a non-200 status
   const configuration = createQueryConfiguration({
     query,
   });
-  const hook = createHook(configuration);
+  const accessor = createAccessor(configuration);
 
   const promiseExecute = resolveSuspense(() => {
     // When using the accessor hook.
-    const result = hook(() => cache, { id: '0' });
+    const result = useQuery(accessor, () => cache, { id: '0' });
 
     // Then the result data is correct.
     JSON.stringify(result.data); // Need to "evaluate" the proxy if it is one.
@@ -378,11 +383,11 @@ test('when using a accessor query hook with a query response of a 200 status cod
   const configuration = createQueryConfiguration({
     query,
   });
-  const hook = createHook(configuration);
+  const accessor = createAccessor(configuration);
 
   const promiseExecute = resolveSuspense(() => {
     // When using the accessor hook.
-    const result = hook(() => cache, { id: '0' });
+    const result = useQuery(accessor, () => cache, { id: '0' });
 
     // Then the result data is correct.
     JSON.stringify(result.data); // Need to "evaluate" the proxy if it is one.
@@ -423,11 +428,11 @@ test('when using a accessor query hook with a query response that takes longer t
     constraints: { enforce: true, maxDelay: 1 },
     query,
   });
-  const hook = createHook(configuration);
+  const accessor = createAccessor(configuration);
 
   const promiseExecute = resolveSuspense(() => {
     // When using the accessor hook.
-    const result = hook(() => cache, { id: '0' });
+    const result = useQuery(accessor, () => cache, { id: '0' });
 
     // Then the result data is correct.
     JSON.stringify(result.data); // Need to "evaluate" the proxy if it is one.
