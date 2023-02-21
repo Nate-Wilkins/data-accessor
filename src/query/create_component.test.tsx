@@ -2,14 +2,14 @@ import { render, waitFor } from '@testing-library/react/pure';
 import React from 'react';
 import { create as createPromise } from '../../test/promiseManual';
 import { createComponent } from './create_component';
+import { AccessorQueryResult } from './types';
 import {
   Book,
   createCacheStore,
   createQueryConfiguration,
   Response,
   ResponseBook,
-} from './create_hook.test';
-import { AccessorQueryResult } from './types';
+} from './use_query.test';
 
 test('when using a accessor query component without an initial cache result, then the query should execute', async () => {
   // Given a cache store.
