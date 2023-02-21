@@ -1,11 +1,17 @@
 {
   "name": "data-accessor",
   "version": "14.0.1",
+  "author": "nate-wilkins <nate-wilkins@code-null.com>",
   "description": "Simple data access layer for the frontend.",
   "main": "dist/index.js",
   "types": "src/index.tsx",
   "types": "dist/index.d.ts",
-  "repository": "git@github.com:nate-wilkins/data-accessor.git",
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/nate-wilkins/data-accessor"
+  },
+  "homepage": "http://github.com/nate-wilkins/data-accessor",
+  "bugs": "http://github.com/nate-wilkins/data-accessor/issues",
   "license": "Apache-2.0",
   "scripts": {
     "clean": "scripts/clean",
