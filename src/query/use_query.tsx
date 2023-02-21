@@ -57,10 +57,12 @@ import {
  * @example
  *   ```
  *   // use_get_book.tsx
- *   const useGetBook = createHook({ ... });
+ *   const accessor = createAccessor({ ... });
+ *   const useGetBook = useQuery(accessor, { ... });
  *
  *   // use_get_book_reports.tsx
- *   const useGetBookReports = createHook({ ... });
+ *   const accessor = createAccessor({ ... });
+ *   const useGetBookReports = useQuery(accessor, { ... });
  *
  *   // BookReports.tsx
  *   const BookReports = ({ id }) => {
@@ -89,6 +91,7 @@ export const useQuery = <
   args: TQueryRequest,
 ): AccessorQueryResult<TData> => {
   // Trigger a requery/rerender - Used when invalidating the accessor request.
+  // TODO: Support `requery` and `invalidate`!
   //const [_, setTriggerRender] = useState(false);
   //const requery = () => setTriggerRender(v => !v);
   const requery = () => console.error('Not implemented!');
