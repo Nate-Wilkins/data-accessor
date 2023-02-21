@@ -7,6 +7,11 @@ configure({
   defaultHidden: true,
 });
 
+// Mock timers.
+jest.useFakeTimers();
+jest.spyOn(global, 'setTimeout');
+jest.spyOn(global, 'setInterval');
+
 afterEach(() => {
   cleanup();
 });

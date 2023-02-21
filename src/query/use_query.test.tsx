@@ -1,5 +1,6 @@
 import { waitForElementToBeRemoved } from '@testing-library/react/pure';
 import React, { useEffect } from 'react';
+import { act } from 'react-dom/test-utils';
 import {
   Book,
   createCacheStore,
@@ -371,6 +372,7 @@ test('when invalidating an accessor query hook, then the cache should invalidate
   const trigger = jest.fn((result: AccessorQueryResult<Book>) =>
     result.invalidate(),
   );
+  // And some callback to render data.
   const renderData = jest.fn((result: AccessorQueryResult<Book>) => {
     return JSON.stringify(result.data);
   });
@@ -404,4 +406,75 @@ test('when invalidating an accessor query hook, then the cache should invalidate
   //   1. For the cached data.
   //   2. For the invalidation.
   expect(renderData).toHaveBeenCalledTimes(2);
+});
+
+test('when auto invalidating an accessor query hook, then the cache should invalidate and trigger a rerender', async () => {
+  // Given a cache store.
+  const cache = createCacheStore();
+
+  // And a query response.
+  const data = { book: { id: '0', title: 'My Book', authorId: '3' } };
+  const query = jest.fn(() =>
+    createPromise<Response<ResponseBook>>(
+      { resolve: true },
+      {
+        status: 200,
+        data,
+      },
+    ),
+  );
+
+  // And the cache result is initially available.
+  cache.books.set('0', data.book);
+
+  // And a accessor query configuration.
+  const configuration = createQueryConfiguration({
+    query,
+    cache: {
+      invalidate: { auto: { enabled: true, interval: 3000 } },
+    },
+  });
+  const accessor = createAccessor(configuration);
+
+  // And some callback to render data.
+  const renderData = jest.fn((result: AccessorQueryResult<Book>) => {
+    return JSON.stringify(result.data);
+  });
+
+  // And a component using the accessor query.
+  const Component = () => {
+    // And the component has already requested data.
+    const result = useQuery(accessor, () => cache, { id: '0' });
+    JSON.stringify(result.data); // Need to "evaluate" the proxy if it is one.
+
+    return <>{renderData(result)}</>;
+  };
+  const queries = renderAccessor(<Component />);
+
+  // And the query did *not* execute yet.
+  expect(query).toHaveBeenCalledTimes(0);
+  queries.getByText(JSON.stringify(data.book));
+
+  // When invalidating an accessor query hook.
+  // NOTE: Done internally by `useQuery`.
+  act(() => {
+    jest.advanceTimersByTime(3000);
+  });
+
+  // Then the query did execute.
+  await waitForElementToBeRemoved(() => queries.getByText('Loading...'));
+  queries.getByText(JSON.stringify(data.book));
+  expect(query).toHaveBeenCalledTimes(1);
+  expect(query).toHaveBeenCalledWith({ id: '0' });
+
+  // Then the data was rendered twice.
+  //   1. For the cached data.
+  //   2. For the invalidation.
+  expect(renderData).toHaveBeenCalledTimes(2);
+
+  // Then the invalidation trigger was setup correctly.
+  // NOTE: setInterval is called internally by React as well.
+  expect(setInterval).toHaveBeenCalledTimes(2);
+  expect(setInterval).toHaveBeenNthCalledWith(1, expect.any(Function), 3000);
+  expect(setInterval).toHaveBeenNthCalledWith(2, expect.any(Function), 50);
 });
