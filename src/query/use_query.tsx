@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   AccessorQueryCacheStore,
   AccessorQueryConfiguration,
@@ -33,26 +34,29 @@ import {
  *   1. Clear the current accessor request cache by calling `configuration.cache.clear` with the accessor request arguments.
  *   2. Run the accessor request again with the cache now cleared.
  *
- * @param.configuration.cache.duration                                              - How long, in milliseconds, the accessor cache should be used for before being invalidated.
- * @param.configuration.cache.isPrimableFromCache         <true>                    - Determines if the accessor can be primed from the cache of other data accessors.
- *                                                                                    Once primed the `configuration.cacheDuration` will be respected.
- * @param.configuration.cache.id                                                    - Synchrounous get function used to reference the accessor cache.
- * @param.configuration.cache.set                                                   - Synchrounous set function used to assign the query's response to cache.
- * @param.configuration.cache.get                                                   - Synchrounous get function used to construct the accessor response from cache.
+ * @param.configuration.cache.duration                                                - How long, in milliseconds, the accessor cache should be used for before being invalidated.
+ * @param.configuration.cache.isPrimableFromCache      <true>                         - Determines if the accessor can be primed from the cache of other data accessors.
+ *                                                                                      Once primed the `configuration.cacheDuration` will be respected.
+ * @param.configuration.cache.id                                                      - Synchrounous get function used to reference the accessor cache.
+ * @param.configuration.cache.set                                                     - Synchrounous set function used to assign the query's response to cache.
+ * @param.configuration.cache.get                                                     - Synchrounous get function used to construct the accessor response from cache.
  *
- * @param.configuration.constraints.enforce                                         - Determine if the accessor should throw when the constraints aren't met.
- * @param.configuration.constraints.maxDelay              <null>                    - When provided the accessor will be timed.
- *                                                                                    To see timings you must have `debug` enabled.
- *                                                                                    If `enforce` is enabled then the accessor will
- *                                                                                    throw if the accessor can't resolve data within the
- *                                                                                    `maxDelay`.
+ * @param configuration.cache.invalidate.auto.enable   <undefined>                    - Determine if the accessor should invalidate automatically.
+ * @param configuration.cache.invalidate.auto.interval <configuration.cache.duration> - How long, in milliseconds, the cache should be invalidated.
  *
- * @param.configuration.debug <false>                                               - Turns logging on or off.
- * @param configuration.query                                                       - Asynchrounous get function used to populate the accessor cache.
+ * @param.configuration.constraints.enforce            <undefined>                    - Determine if the accessor should throw when the constraints aren't met.
+ * @param.configuration.constraints.maxDelay           <undefined>                    - When provided the accessor will be timed.
+ *                                                                                      To see timings you must have `debug` enabled.
+ *                                                                                      If `enforce` is enabled then the accessor will
+ *                                                                                      throw if the accessor can't resolve data within the
+ *                                                                                      `maxDelay`.
+ *
+ * @param.configuration.debug <false>                                                 - Turns logging on or off.
+ * @param configuration.query                                                         - Asynchrounous get function used to populate the accessor cache.
  *
  * @returns (cache: TCache, args: TQueryRequest) => AccessorQueryResult<TData>
- * @param cache                                          - Where to store cache data for data access.
- * @param args                                           - Arguments to send to the query.
+ * @param cache                                                                       - Where to store cache data for data access.
+ * @param args                                                                        - Arguments to send to the query.
  *
  * @example
  *   ```
@@ -90,20 +94,23 @@ export const useQuery = <
   getCacheStore: () => TCache,
   args: TQueryRequest,
 ): AccessorQueryResult<TData> => {
-  // Trigger a requery/rerender - Used when invalidating the accessor request.
-  // TODO: Support `requery` and `invalidate`!
-  //const [_, setTriggerRender] = useState(false);
-  //const requery = () => setTriggerRender(v => !v);
-  const requery = () => console.error('Not implemented!');
+  // Configure the accessor.
+  const configuration = accessor.configuration;
+  const context = accessor.context;
 
-  const {
-    configuration: { debug, constraints, cache },
-    context: { queryName, requestQueryPromise, suspenseRequestQuery },
-  } = accessor;
+  const debug = configuration.debug || false;
+  const constraints = configuration.constraints || null;
+  const cache = configuration.cache;
+
+  // Trigger a requery/rerender - Used when invalidating the accessor request.
+  const [_, setTriggerRender] = useState<boolean>(false);
+  const requery = () => setTriggerRender(v => !v);
+
+  const { queryName, requestQueryPromise, suspenseRequestQuery } = context;
 
   // Are we profiling?
   let finishProfiling: undefined | (() => void);
-  if (typeof constraints?.maxDelay === 'number') {
+  if (constraints && typeof constraints.maxDelay === 'number') {
     // Start profiling.
     const timeStart = window.performance.now();
     finishProfiling = () => {

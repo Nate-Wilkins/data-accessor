@@ -241,14 +241,12 @@ export const AccessorGetBooks = accessorQuery.createComponent<
 
 // 2. Accessor as a hook.
 //    Useful if you are already used to data access as hooks.
-const accessor = accessorQuery.createAccesor<
+export const useGetBooks = accessorQuery.createHook<
   State,
   RequestGetBooks,
   ResponseGetBooks,
   Category[]
 >(configuration);
-
-export const useGetBooks = (...args) => useQuery(accessor, ...args);
 ```
 
 5. The last step is to use your accessor query.

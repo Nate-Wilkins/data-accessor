@@ -1,157 +1,17 @@
-import { create as createPromise } from '../../test/promiseManual';
-import { createAccessor } from './create_accessor';
-import { createCache } from './create_cache';
+import { waitForElementToBeRemoved } from '@testing-library/react/pure';
+import React, { useEffect } from 'react';
 import {
-  AccessorQueryCacheStore,
-  AccessorQueryConfiguration,
-  AccessorQueryResultCacheSetResult,
-} from './types';
+  Book,
+  createCacheStore,
+  createQueryConfiguration,
+  renderAccessor,
+  Response,
+  ResponseBook,
+} from '../../test/accessor';
+import { create as createPromise } from '../../test/promise_manual';
+import { createAccessor } from './create_accessor';
+import { AccessorQueryResult } from './types';
 import { useQuery } from './use_query';
-
-export type Book = {
-  id: string;
-  title: string;
-  authorId: string;
-};
-
-export type Response<T> = {
-  status: number;
-  data?: T | null | undefined;
-  error?: string | undefined;
-};
-
-export type RequestBook = {
-  id: string;
-};
-
-export type ResponseBook = {
-  book: Book;
-};
-
-export interface CacheStore extends AccessorQueryCacheStore {
-  books: Map<string, Book>;
-}
-
-/*
- * Creates a cache store.
- */
-export const createCacheStore = (): CacheStore => {
-  const cacheStore = {
-    ...createCache(setter => {
-      setter(cacheStore);
-    }),
-    books: new Map<string, Book>(),
-  };
-
-  return cacheStore;
-};
-
-/*
- * Create an accessor query configuration.
- *
- * Parts of the configuration can be overwritten when provided as arguments.
- */
-export const createQueryConfiguration = (overrides: {
-  cache?: Partial<
-    AccessorQueryConfiguration<
-      CacheStore,
-      RequestBook,
-      ResponseBook,
-      Book
-    >['cache']
-  >;
-  constraints?: Partial<
-    AccessorQueryConfiguration<
-      CacheStore,
-      RequestBook,
-      ResponseBook,
-      Book
-    >['constraints']
-  >;
-  query?: AccessorQueryConfiguration<
-    CacheStore,
-    RequestBook,
-    ResponseBook,
-    Book
-  >['query'];
-}): AccessorQueryConfiguration<CacheStore, RequestBook, ResponseBook, Book> => {
-  return {
-    debug: false,
-    constraints: {
-      ...overrides.constraints,
-    },
-    cache: {
-      duration: 1000 * 60, // 1min
-      isPrimableFromCache: true,
-      id: ({ args }) => `getBook#id#${args.id}`,
-      set: ({ cache, response }): { data: Book } => {
-        const store = cache();
-
-        // Parse.
-        const book = response.data.book;
-
-        // Set cache.
-        store.books.set(book.id, book);
-
-        return { data: book };
-      },
-      get: ({
-        cache,
-        args,
-      }): AccessorQueryResultCacheSetResult<Book> | null => {
-        const store = cache();
-
-        // Get cache.
-        const cacheResult = store.books.get(args.id);
-
-        // Do we have a cache result?
-        if (typeof cacheResult !== 'undefined') {
-          return { data: cacheResult };
-        }
-
-        return null;
-      },
-      ...overrides.cache,
-    } as AccessorQueryConfiguration<
-      CacheStore,
-      RequestBook,
-      ResponseBook,
-      Book
-    >['cache'],
-    query: overrides.query
-      ? (overrides.query as AccessorQueryConfiguration<
-          CacheStore,
-          RequestBook,
-          ResponseBook,
-          Book
-        >['query'])
-      : async (args: RequestBook): Promise<Response<ResponseBook>> => {
-          return createPromise<Response<ResponseBook>>(
-            { resolve: true },
-            {
-              status: 200,
-              data: { book: { id: args.id, title: 'My Book', authorId: '3' } },
-            },
-          );
-        },
-  };
-};
-
-/*
- * Resolve any thrown promises that occur.
- */
-const resolveSuspense = async (callback: () => void) => {
-  try {
-    callback();
-  } catch (ePromise: any) {
-    if (ePromise.then) {
-      await ePromise;
-      callback();
-    } else {
-      throw ePromise;
-    }
-  }
-};
 
 test('when using a accessor query hook without an initial cache result, then the query should execute', async () => {
   // Given a cache store.
@@ -176,16 +36,23 @@ test('when using a accessor query hook without an initial cache result, then the
   });
   const accessor = createAccessor(configuration);
 
-  await resolveSuspense(() => {
+  // And a component using the accessor query.
+  const Component = () => {
     // When using the accessor hook.
     const result = useQuery(accessor, () => cache, { id: '0' });
     JSON.stringify(result.data); // Need to "evaluate" the proxy if it is one.
 
     // Then the result data is correct.
     expect(result.data).toBe(data.book);
-  });
+
+    return <>{JSON.stringify(result.data)}</>;
+  };
+  const queries = renderAccessor(<Component />);
 
   // Then the query did execute.
+  await waitForElementToBeRemoved(() => queries.getByText('Loading...'));
+  queries.getByText(JSON.stringify(data.book));
+  expect(query).toHaveBeenCalledTimes(1);
   expect(query).toHaveBeenCalledWith({ id: '0' });
 });
 
@@ -224,16 +91,21 @@ test('when using a accessor query hook with an initial cache result and isPrimab
   });
   const accessor = createAccessor(configuration);
 
-  await resolveSuspense(() => {
+  // And a component using the accessor query.
+  const Component = () => {
     // When using the accessor hook.
     const result = useQuery(accessor, () => cache, { id: '0' });
     JSON.stringify(result.data); // Need to "evaluate" the proxy if it is one.
 
     // Then the result data is correct.
     expect(result.data).toBe(data.book);
-  });
+
+    return <>{JSON.stringify(result.data)}</>;
+  };
+  const queries = renderAccessor(<Component />);
 
   // Then the query did *not* execute.
+  queries.getByText(JSON.stringify(data.book));
   expect(query).not.toHaveBeenCalled();
 });
 
@@ -276,17 +148,24 @@ test('when using a accessor query hook with an initial cache result and isPrimab
   });
   const accessor = createAccessor(configuration);
 
-  await resolveSuspense(() => {
+  // And a component using the accessor query.
+  const Component = () => {
     // When using the accessor hook.
     const result = useQuery(accessor, () => cache, { id: '0' });
     JSON.stringify(result.data); // Need to "evaluate" the proxy if it is one.
 
     // Then the result data is correct.
     expect(result.data).toBe(data.book);
-  });
 
-  // Then the query did *not* execute.
-  expect(query).toHaveBeenCalled();
+    return <>{JSON.stringify(result.data)}</>;
+  };
+  const queries = renderAccessor(<Component />);
+
+  // Then the query did execute.
+  await waitForElementToBeRemoved(() => queries.getByText('Loading...'));
+  queries.getByText(JSON.stringify(data.book));
+  expect(query).toHaveBeenCalledTimes(1);
+  expect(query).toHaveBeenCalledWith({ id: '0' });
 });
 
 test('when using a accessor query hook with a query that errors, then the query error should be thrown', async () => {
@@ -307,17 +186,23 @@ test('when using a accessor query hook with a query that errors, then the query 
   });
   const accessor = createAccessor(configuration);
 
-  const promiseExecute = resolveSuspense(() => {
+  // And a component using the accessor query.
+  const Component = () => {
     // When using the accessor hook.
     const result = useQuery(accessor, () => cache, { id: '0' });
     JSON.stringify(result.data); // Need to "evaluate" the proxy if it is one.
-  });
+
+    return null;
+  };
 
   // Then the query response error is thrown.
-  await expect(promiseExecute).rejects.toThrow(/Network call error\./);
+  const queries = renderAccessor(<Component />);
 
   // Then the query did execute.
-  expect(query).toHaveBeenCalled();
+  await waitForElementToBeRemoved(() => queries.getByText('Loading...'));
+  queries.getByText(/Network call error\./);
+  expect(query).toHaveBeenCalledTimes(1);
+  expect(query).toHaveBeenCalledWith({ id: '0' });
 });
 
 test('when using a accessor query hook with a query response of a non-200 status code, then an error should be thrown', async () => {
@@ -348,19 +233,23 @@ test('when using a accessor query hook with a query response of a non-200 status
   });
   const accessor = createAccessor(configuration);
 
-  const promiseExecute = resolveSuspense(() => {
+  // And a component using the accessor query.
+  const Component = () => {
     // When using the accessor hook.
     const result = useQuery(accessor, () => cache, { id: '0' });
-
-    // Then the result data is correct.
     JSON.stringify(result.data); // Need to "evaluate" the proxy if it is one.
-  });
+
+    return null;
+  };
 
   // Then the query response error is thrown.
-  await expect(promiseExecute).rejects.toThrow(/\(500\) Response failed\./);
+  const queries = renderAccessor(<Component />);
 
   // Then the query did execute.
-  expect(query).toHaveBeenCalled();
+  await waitForElementToBeRemoved(() => queries.getByText('Loading...'));
+  queries.getByText(/\(500\) Response failed\./);
+  expect(query).toHaveBeenCalledTimes(1);
+  expect(query).toHaveBeenCalledWith({ id: '0' });
 });
 
 test('when using a accessor query hook with a query response of a 200 status code and an error text, then an error should be thrown', async () => {
@@ -385,21 +274,23 @@ test('when using a accessor query hook with a query response of a 200 status cod
   });
   const accessor = createAccessor(configuration);
 
-  const promiseExecute = resolveSuspense(() => {
+  // And a component using the accessor query.
+  const Component = () => {
     // When using the accessor hook.
     const result = useQuery(accessor, () => cache, { id: '0' });
-
-    // Then the result data is correct.
     JSON.stringify(result.data); // Need to "evaluate" the proxy if it is one.
-  });
+
+    return null;
+  };
 
   // Then the query response error is thrown.
-  await expect(promiseExecute).rejects.toThrow(
-    /\(200\) Response failed: A validation error occurred\./,
-  );
+  const queries = renderAccessor(<Component />);
 
   // Then the query did execute.
-  expect(query).toHaveBeenCalled();
+  await waitForElementToBeRemoved(() => queries.getByText('Loading...'));
+  queries.getByText(/\(200\) Response failed: A validation error occurred\./);
+  expect(query).toHaveBeenCalledTimes(1);
+  expect(query).toHaveBeenCalledWith({ id: '0' });
 });
 
 test('when using a accessor query hook with a query response that takes longer than the maxDelay with enforce on, then an error timeout should be thrown', async () => {
@@ -430,19 +321,87 @@ test('when using a accessor query hook with a query response that takes longer t
   });
   const accessor = createAccessor(configuration);
 
-  const promiseExecute = resolveSuspense(() => {
+  // And a component using the accessor query.
+  const Component = () => {
     // When using the accessor hook.
     const result = useQuery(accessor, () => cache, { id: '0' });
-
-    // Then the result data is correct.
     JSON.stringify(result.data); // Need to "evaluate" the proxy if it is one.
-  });
+
+    return null;
+  };
 
   // Then the query response error is thrown.
-  await expect(promiseExecute).rejects.toThrow(
-    /Data accessor 'mockConstructor' with id 'getBook#id#0' timed out./,
-  );
+  const queries = renderAccessor(<Component />);
 
   // Then the query did execute.
-  expect(query).toHaveBeenCalled();
+  await waitForElementToBeRemoved(() => queries.getByText('Loading...'));
+  queries.getByText(
+    /Data accessor 'mockConstructor' with id 'getBook#id#0' timed out\./,
+  );
+  expect(query).toHaveBeenCalledTimes(1);
+  expect(query).toHaveBeenCalledWith({ id: '0' });
+});
+
+test('when invalidating an accessor query hook, then the cache should invalidate and trigger a rerender', async () => {
+  // Given a cache store.
+  const cache = createCacheStore();
+
+  // And a query response.
+  const data = { book: { id: '0', title: 'My Book', authorId: '3' } };
+  const query = jest.fn(() =>
+    createPromise<Response<ResponseBook>>(
+      { resolve: true },
+      {
+        status: 200,
+        data,
+      },
+    ),
+  );
+
+  // And the cache result is initially available.
+  cache.books.set('0', data.book);
+
+  // And a accessor query configuration.
+  const configuration = createQueryConfiguration({
+    query,
+  });
+  const accessor = createAccessor(configuration);
+
+  // And some callback to trigger the invalidation.
+  const trigger = jest.fn((result: AccessorQueryResult<Book>) =>
+    result.invalidate(),
+  );
+  const renderData = jest.fn((result: AccessorQueryResult<Book>) => {
+    return JSON.stringify(result.data);
+  });
+
+  // And a component using the accessor query.
+  const Component = () => {
+    // And the component has already requested data.
+    const result = useQuery(accessor, () => cache, { id: '0' });
+    JSON.stringify(result.data); // Need to "evaluate" the proxy if it is one.
+
+    // When invalidating an accessor query hook.
+    useEffect(() => {
+      trigger(result);
+    }, []);
+
+    // Then the result data is correct.
+    expect(result.data).toBe(data.book);
+
+    return <>{renderData(result)}</>;
+  };
+  const queries = renderAccessor(<Component />);
+
+  // Then the query did execute.
+  await waitForElementToBeRemoved(() => queries.getByText('Loading...'));
+  queries.getByText(JSON.stringify(data.book));
+  expect(query).toHaveBeenCalledTimes(1);
+  expect(query).toHaveBeenCalledWith({ id: '0' });
+  expect(trigger).toHaveBeenCalledTimes(1);
+
+  // Then the data was rendered twice.
+  //   1. For the cached data.
+  //   2. For the invalidation.
+  expect(renderData).toHaveBeenCalledTimes(2);
 });
