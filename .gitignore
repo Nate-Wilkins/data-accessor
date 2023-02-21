@@ -1,3 +1,16 @@
+.*
+!.editorconfig
+!.envrc.sh
+!.eslintignore
+!.eslintrc.js
+!.gitignore
+!.gitmodules
+!.npmignore
+!.storybook
+!.tool-versions
+!.travis.yml
+!.yarnrc
+
 dist/
 node_modules/
 .nyc_output/
