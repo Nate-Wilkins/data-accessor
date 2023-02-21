@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   AccessorQueryCacheStore,
   AccessorQueryConfiguration,
@@ -98,15 +98,32 @@ export const useQuery = <
   const configuration = accessor.configuration;
   const context = accessor.context;
 
+  // Configuration.
   const debug = configuration.debug || false;
   const constraints = configuration.constraints || null;
   const cache = configuration.cache;
+
+  // Context.
+  const { queryName, requestQueryPromise, suspenseRequestQuery } = context;
 
   // Trigger a requery/rerender - Used when invalidating the accessor request.
   const [_, setTriggerRender] = useState<boolean>(false);
   const requery = () => setTriggerRender(v => !v);
 
-  const { queryName, requestQueryPromise, suspenseRequestQuery } = context;
+  // Cache auto invalidation.
+  useEffect(() => {
+    if (!cache.invalidate || !cache.invalidate.auto) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      invalidate();
+    }, cache.invalidate.auto.interval || cache.duration);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [cache.invalidate]);
 
   // Are we profiling?
   let finishProfiling: undefined | (() => void);

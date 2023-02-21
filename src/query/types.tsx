@@ -37,6 +37,8 @@ export type AccessorQueryConfiguration<
 
     id: (args: { args: TQueryRequest }) => string;
 
+    invalidate?: { auto?: { enabled: boolean; interval?: number } };
+
     set: (args: {
       cache: () => TCache;
       cacheId: string;
