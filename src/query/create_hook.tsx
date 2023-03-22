@@ -1,32 +1,15 @@
-import { createAccessor } from './create_accessor';
-import { AccessorQueryCacheStore, AccessorQueryConfiguration } from './types';
+import { ConfigurationQuery } from './types';
 import { useQuery } from './use_query';
 
 /*
- * Create an accessor query hook.
+ * Create a query hook.
  *
- * Please refer to the `useQuery` function for more details.
+ * Please refer to the `useQuery` hook for more details.
  */
-export const createHook = <
-  TCache extends AccessorQueryCacheStore,
-  TQueryRequest,
-  TQueryResponse,
-  TData,
->(
-  configuration: AccessorQueryConfiguration<
-    TCache,
-    TQueryRequest,
-    TQueryResponse,
-    TData
-  >,
+export const createHook = <TQueryRequest, TQueryResponse, TData>(
+  configuration: ConfigurationQuery<TQueryRequest, TQueryResponse, TData>,
 ) => {
-  const accessor = createAccessor(configuration);
-
-  return (getCacheStore: () => TCache, args: TQueryRequest) => {
-    return useQuery<TCache, TQueryRequest, TQueryResponse, TData>(
-      accessor,
-      getCacheStore,
-      args,
-    );
+  return (args: TQueryRequest) => {
+    return useQuery<TQueryRequest, TQueryResponse, TData>(configuration, args);
   };
 };

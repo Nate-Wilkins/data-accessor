@@ -22,8 +22,14 @@ module.exports = {
   // your test, make sure it matches this pattern.
   testMatch: ['**/*.test.ts?(x)'],
   transform: {
-    '^.+\\.(ts|tsx)$': 'ts-jest',
+    '^.+\\.(ts|tsx)$': [
+      'ts-jest',
+      {
+        tsConfig: './tsconfig.json',
+      },
+    ],
   },
-  setupFiles: ['jest-date-mock'],
+  setupFiles: [],
   reporters: ['default'],
+  globals: {},
 };

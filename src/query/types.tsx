@@ -1,140 +1,64 @@
-export type AccessorQueryResultFetchMore<T> = () => Promise<
-  AccessorQueryResult<T>
->;
-export type AccessorQueryResultClear = () => void;
-export type AccessorQueryResultInvalidate = () => void;
-
-export type AccessorQueryCacheStoreSet<T> = {
-  (store: T): void;
-};
-
-export type AccessorQueryCacheStore = {
-  dataAccess: {
-    set: (store: AccessorQueryCacheStoreSet<AccessorQueryCacheStore>) => any;
-    query: Map<
-      string,
-      | {
-          cacheTimeToRefresh: number;
-          promise: null | Promise<AccessorQueryResultCacheSetResult<any>>;
-        }
-      | Error
-    >;
-    suspense: Map<string, () => AccessorQueryResultCacheSetResult<any>>;
-  };
-};
-
-type AccessorQueryConfigurationCacheSet<
-  TCache,
-  TQueryRequest,
-  TQueryResponse,
-  TData,
-> = (args: {
-  cache: () => TCache;
-  cacheId: string;
-  args: TQueryRequest;
-  request: (
-    args: TQueryRequest,
-  ) => Promise<AccessorQueryResultCacheSetResult<TData>>;
-  response: { status: number; data: TQueryResponse };
-}) => { data: TData };
-
-type AccessorQueryConfigurationCacheGet<TCache, TQueryRequest, TData> = (args: {
-  cache: () => TCache;
-  cacheId: string;
-  args: TQueryRequest;
-  request: (
-    args: TQueryRequest,
-  ) => Promise<AccessorQueryResultCacheSetResult<TData>>;
-}) => AccessorQueryResultCacheSetResult<TData> | null;
-
-type AccessorQueryConfigurationCacheClear<TCache, TQueryRequest> = (args: {
-  cacheId: string;
-  args: TQueryRequest;
-  set: (store: AccessorQueryCacheStoreSet<TCache>) => any;
-}) => void;
-
-export type AccessorQueryConfiguration<
-  TCache,
-  TQueryRequest,
-  TQueryResponse,
-  TData,
-> = {
+export type ConfigurationQuery<TQueryRequest, TQueryRequestResponse, TData> = {
   debug?: boolean;
-  cache: {
-    duration: number;
 
-    isPrimableFromCache: boolean;
+  cache: {
+    limit?: number;
+
+    ttl: number;
+
+    isPrimable?: boolean;
 
     id: (args: { args: TQueryRequest }) => string;
 
-    invalidate?: { auto?: { enable: boolean; interval?: number } };
+    invalidate?: {
+      auto?: {
+        enable: boolean;
+        ttl?: number;
+        // TODO: showLoading?: boolean;
+      };
+    };
 
-    set: AccessorQueryConfigurationCacheSet<
-      TCache,
-      TQueryRequest,
-      TQueryResponse,
-      TData
-    >;
+    set: CacheSet<TQueryRequest, TQueryRequestResponse, TData>;
 
-    get: AccessorQueryConfigurationCacheGet<TCache, TQueryRequest, TData>;
+    get: CacheGet<TQueryRequest, TData>;
 
-    clear: AccessorQueryConfigurationCacheClear<TCache, TQueryRequest>;
+    clear: CacheClear<TQueryRequest>;
   };
-  constraints?: {
-    enforce?: boolean;
-    maxDelay?: number;
+
+  suspense?: {
+    cache: {
+      get: (k: string) => (() => CacheResult<TData>) | null | undefined;
+      set: (k: string, v: () => CacheResult<TData>) => void;
+    };
   };
-  query: (
+
+  queryRequest: (
     args: TQueryRequest,
-  ) => Promise<AccessorQueryRequestResponse<TQueryResponse>>;
+  ) => Promise<QueryRequestResponse<TQueryRequestResponse>>;
+
+  queryRequestMore?: (args: {
+    args: TQueryRequest;
+    data: TData;
+  }) => () => Promise<null | QueryRequestResponse<TQueryRequestResponse>>;
 };
 
-export type AccessorQueryContext<TCache, TQueryRequest, TQueryResponse, TData> =
-  {
-    queryName: string;
-    requestQueryPromise: (
-      getCacheStore: () => TCache,
-      args: TQueryRequest,
-    ) => Promise<AccessorQueryResultCacheSetResult<TData>>;
-    suspenseRequestQuery: ({
-      getCacheStore,
-      onDone,
-      args,
-    }: {
-      getCacheStore: () => TCache;
-      onDone?: () => void;
-      args: TQueryRequest;
-    }) => () => AccessorQueryResultCacheSetResult<TData>;
-  };
-
-export type AccessorQueryResultCacheSetResult<TData> = {
-  data: null | TData;
-  fetchMore?: null | AccessorQueryResultFetchMore<TData>;
+export type CacheResult<TData> = {
+  data: TData;
 };
 
-export type AccessorQueryResult<TData> = {
-  // Data from the accessor request.
-  data: null | TData;
+export type CacheSet<TQueryRequest, TQueryRequestResponse, TData> = (args: {
+  args: TQueryRequest;
+  response: { status: number; data: TQueryRequestResponse };
+}) => { data: TData };
 
-  // Prepopulated `request` for additional data from a `query`.
-  fetchMore?: null | AccessorQueryResultFetchMore<TData>;
+export type CacheGet<TQueryRequest, TData> = (args: {
+  args: TQueryRequest;
+}) => CacheResult<TData> | null;
 
-  // PrePopulated `clear` to remove a reqeust from the cache.
-  // You might be looking for `invalidate`.
-  clear: AccessorQueryResultClear;
+export type CacheClear<TQueryRequest> = (args: { args: TQueryRequest }) => void;
 
-  // PrePopulated `clear` **and** will invoke the accessor request again.
-  invalidate: AccessorQueryResultInvalidate;
-};
-
-export type AccessorQueryRequestResponse<T> = {
+export type QueryRequestResponse<T> = {
   status: number;
   data?: null | T;
   error?: string;
 };
-
-export class ErrorTimedOut extends Error {
-  constructor(queryName: string, cacheId: string) {
-    super(`Data accessor '${queryName}' with id '${cacheId}' timed out.`);
-  }
-}

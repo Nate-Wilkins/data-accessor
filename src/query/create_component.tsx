@@ -1,49 +1,42 @@
 import React, { FunctionComponent, ReactNode } from 'react';
-import { createHook } from './create_hook';
-import {
-  AccessorQueryCacheStore,
-  AccessorQueryConfiguration,
-  AccessorQueryResult,
-} from './types';
+import { CacheResult, ConfigurationQuery, QueryRequestResponse } from './types';
+import { useQuery } from './use_query';
 
-type Props<Cache, QueryRequest, Data> = {
-  cache: () => Cache;
-  args: QueryRequest;
-  children: (result: AccessorQueryResult<Data>) => ReactNode;
+type Props<TQueryRequest, TQueryRequestResponse, TData> = {
+  args: TQueryRequest;
+  children: (args: {
+    data: TData;
+    cache: { invalidate: () => Promise<CacheResult<TData>> };
+    queryMore:
+      | (() => Promise<QueryRequestResponse<TQueryRequestResponse> | null>)
+      | null;
+  }) => ReactNode;
 };
 
 /*
- * Create an accessor query component.
+ * Create a query component.
  *
  * These types of function factories are often referred to as high level order components (HOC).
  *
- * Please refer to the `createHook` function for more details.
+ * Please refer to the `useQuery` hook for more details.
  */
-export const createComponent = <
-  Cache extends AccessorQueryCacheStore,
-  QueryRequest,
-  QueryResponse,
-  Data,
->(
-  configuration: AccessorQueryConfiguration<
-    Cache,
-    QueryRequest,
-    QueryResponse,
-    Data
+export const createComponent = <TQueryRequest, TQueryRequestResponse, TData>(
+  configuration: ConfigurationQuery<
+    TQueryRequest,
+    TQueryRequestResponse,
+    TData
   >,
-): FunctionComponent<Props<Cache, QueryRequest, Data>> => {
-  // Accessor.
-  const useAccessorQuery = createHook(configuration);
-
+): FunctionComponent<Props<TQueryRequest, TQueryRequestResponse, TData>> => {
   // Component.
-  const Component: FunctionComponent<Props<Cache, QueryRequest, Data>> = ({
-    children,
-    cache,
-    args,
-  }) => {
-    const accessorResult = useAccessorQuery(cache, args);
+  const Component: FunctionComponent<
+    Props<TQueryRequest, TQueryRequestResponse, TData>
+  > = ({ children, args }) => {
+    const result = useQuery<TQueryRequest, TQueryRequestResponse, TData>(
+      configuration,
+      args,
+    );
 
-    return <>{children(accessorResult)}</>;
+    return <>{children(result)}</>;
   };
 
   // NOTE: To create a HOC like this we need to explicitly define a function component.

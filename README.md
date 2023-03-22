@@ -6,41 +6,104 @@
 [![test coverage](https://img.shields.io/badge/test%20coverage-62%25-green?style=flat-square)](https://travis-ci.com/Nate-Wilkins/data-accessor)
 [![dependencies](https://badges.depfu.com/badges/d8b66f8525f8724877c53766ef13853e/count.svg)](https://badges.depfu.com/github/Nate-Wilkins/data-accessor?project_id=37340)
 
-> Data access layer for the frontend.
+> Simplified delayed data access, loading, error, and display states.
 
-## Why?
+```
+yarn add data-accessor
+```
 
-Web applications and data access has always been a challenge.
+The purpose of this library is to simplify delayed data access patterns.
 
-Developers required a more convenient way to create web applications so
-they pushed data retrieval, aggregation, and mutations to the frontend with XHR, JSON, and fetch.
+Why? Because delaying data retrieval until you need it usually *just* works and can simplify development in some
+cases. Especially prototyping and self contained libraries. In other areas, such as performance, delayed data access
+can cause duplication with data retrieval and it's important to figure out when you need to retrieve certain data.
 
-And while that can be very convenient it sometimes leaves the
-application a bit slower than if you were to do rendering and/or aggregation on the server.
+This library provides a:
 
-This package is designed to provide patterns to the following:
+1. Query pattern for components that require data retrieval                  (Network Requests, Pagination, etc)
+2. Caching pattern for data models.                                          (Time To Live, Priming, Auto Invalidation, etc)
+3. Display states for query pattern.                                         (`Boundary`, also known as `Suspense` and `ErrorBoundary`)
+4. Constraints to help improve performance and reusability.                  (Service Level Agreement, Monitoring, etc)
 
-- Data fetching/aggregation/resolution/updates
-- UI/UX loading states
-- UI/UX error states
-- Data cache & priming
-- Composable data fetching/aggregation/resolution/updates
+These patterns should allow developers to work more confidently with their data models and *may* improve the performance
+for certain data paths with cache priming but optimizing your data and database queries to meet the requirements of your
+application will be a more productive strategy.
 
-These patterns and practices should allow developers to work more confidently with their data.
-
-This library *may* improve the speed for certain data retrieval paths but is not a silver bullet for
-performance. Optimizing your data and database queries to meet the requirements of your application will usually
-be a more preferable strategy.
-
-This library is primarily here to help keep the frontend stable, predictable, and readable.
+This library is primarily here to help keep the client stable, predictable, and readable.
 
 ## Usage
 
-```bash
-yarn add data-accessor --save
+```typescript
+import { Boundary, Query } form 'data-accessor';
+
+const QueryGetUser = Query.createComponent({
+  debug: true,
+  cache: { duration, id, set, get, clear };
+  query
+});
+
+export const UserProfile: FunctionComponent<{ email: string }> = ({ email }) => {
+  return (
+    <Boundary onLoading={null} onError={null}>
+      <V1QueryUser args={{ email }}>
+        {({ data }) => (
+          <code>
+            {JSON.strinigify(data)}
+          </code>
+        )}
+      </V1QueryUser>
+    </Boundary>
+  );
+};
+
+const V1QueryUser: FunctionComponent = <T,>({ args }) => {
+  const result = useQuery({
+    debug: true,
+    cache: {
+      ttl: 1000 * 60 * 5,
+      get,
+      set,
+      clear,
+      isPrimable: true,
+    },
+    query: api.getUser
+  }, args);
+
+
+  return <>{children(result)}</>;
+};
+
 ```
 
-Currently the `data-accessor` API only works with [TypeScript](https://www.typescriptlang.org/) and [ReactJS](https://github.com/facebook/react).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ### Queries
 
@@ -211,16 +274,11 @@ const configuration: AccessorQueryConfiguration<
 };
 ```
 
-2. Then make sure your cache is initialized with the accessor query `createCache`.
+2. Then make sure your data cache is setup.
    This example uses [`zustand`](https://github.com/pmndrs/zustand).
 
-```typescript
-const createCache = () => {
-  return create<CacheStore>(set => ({
-    ...AccessorQuery.createCache(set),
-    // ... other cache state initialization ...
-  }));
-};
+```
+TODO: zustand example.
 ```
 
 3. And finally to create the accessor query with the configuration.
@@ -339,9 +397,55 @@ const PageBookList: FunctionComponent<{ category: string }> = ({ category }) => 
 };
 ```
 
+#### Usage with Data Caching
+
+When using an accessor query you have the ability to request the cached request in sub components.
+This allows the developer to explicitly bind a specific UI component to a data model.
+
+Example:
+
+```typescript
+export const DashboardGraphRevenue = ({ startDate, endDate }: { startDate: Date, endDate?: Date }) => {
+  return (
+    <AccessorGetRevenue
+      cache={useStore.getState}
+      args={{ startDate, endDate }}
+    >
+      {({ data: { revenue } }) => (
+        <DashboardGraphRevenueCanvas startDate={startDate} endDate={endDate} revenue={revenue} />
+      )}
+    </AccessorGetRevenue>
+  );
+};
+```
+
+Now this isn't any different from using an accessor query to query for the required data. However,
+if you put the same `AccessorGetRevenue` higher in the component tree the accessor will reuse the same
+configuration and cache.
+
+You can also explicitly require your components to load from cache and throw an error when the data they
+require isn't available in cache by adding the `cacheOnly` property.
+
+Example:
+
+```typescript
+export const DashboardGraphRevenue = ({ startDate, endDate }: { startDate: Date, endDate?: Date }) => {
+  return (
+    <AccessorGetRevenue
+      cache={useStore.getState}
+      cacheOnly
+      args={{ startDate, endDate }}
+    >
+      {({ data: { revenue } }) => (
+        <DashboardGraphRevenueCanvas startDate={startDate} endDate={endDate} revenue={revenue} />
+      )}
+    </AccessorGetRevenue>
+  );
+};
+```
+
 #### Usage with Data Cache Priming
 
-Where would web applications be without data caching.
 The idea here is that a data cache is kept so that requests to an external data source don't need to happen.
 
 Let's say for example we extend our usage example above and we want to render a page with book details.
@@ -484,7 +588,10 @@ export const PageBookDetails: FunctionComponent<{ id: string }> = ({ id }) => {
           args={{ id }}
         >
           {({ data: { book } }) => (
-            <AccessorGetAuthor args={{ id: book.authorId }}>
+            <AccessorGetAuthor
+              cache={useStore.getState}
+              args={{ id: book.authorId }}
+            >
               {({ data: { author } }) => (
                 <div>
                   <h3>{book.title}</h3>

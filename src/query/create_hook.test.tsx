@@ -2,8 +2,8 @@ import { createQueryConfiguration } from '../../test/accessor';
 import { createComponent } from './create_component';
 
 // Assert that we can create an accessor query.
-jest.mock('./create_accessor', () => ({
-  createAccessor: jest.fn(() => ({})),
+jest.mock('./create_hook', () => ({
+  createHook: jest.fn(() => ({})),
 }));
 
 test('when creating an accessor query hook, then an accessor query is created', async () => {
@@ -14,7 +14,7 @@ test('when creating an accessor query hook, then an accessor query is created', 
   createComponent(configuration);
 
   // Then an accessor query is created.
-  const { createAccessor } = jest.requireMock('./create_accessor');
-  expect(createAccessor).toHaveBeenCalledWith(configuration);
-  expect(createAccessor).toHaveBeenCalledTimes(1);
+  const { createHook } = jest.requireMock('./create_hook');
+  expect(createHook).toHaveBeenCalledTimes(1);
+  expect(createHook).toHaveBeenNthCalledWith(1, configuration);
 });

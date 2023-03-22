@@ -1,5 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { cleanup, configure } = require('@testing-library/react');
+require('@testing-library/jest-dom');
 
 configure({
   asyncUtilTimeout: 1000,
@@ -9,6 +10,7 @@ configure({
 
 // Mock timers.
 jest.useFakeTimers();
+jest.setSystemTime(new Date('4/10/1994'));
 jest.spyOn(global, 'setTimeout');
 jest.spyOn(global, 'setInterval');
 

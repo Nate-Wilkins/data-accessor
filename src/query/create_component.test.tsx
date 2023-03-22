@@ -1,4 +1,4 @@
-import { createQueryConfiguration } from '../../test/accessor';
+import { createCacheStore, createConfiguration } from '../../test/query';
 import { createComponent } from './create_component';
 
 // Assert that we can create an accessor query hook.
@@ -7,8 +7,10 @@ jest.mock('./create_hook', () => ({
 }));
 
 test('when creating an accessor query component, then an accessor query hook is created', async () => {
-  // Given a accessor query configuration.
-  const configuration = createQueryConfiguration({});
+  // Given a data cache store.
+  const cacheStore = createCacheStore();
+  // And a accessor query configuration.
+  const configuration = createConfiguration(cacheStore, {});
 
   // When creating an accessor query component.
   createComponent(configuration);

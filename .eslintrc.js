@@ -25,6 +25,8 @@ module.exports = {
   ],
   extends: [
     'eslint:recommended',
+    'plugin:react/recommended',
+    'plugin:react-hooks/recommended',
     'plugin:jest/recommended',
     'plugin:@typescript-eslint/eslint-recommended',
     'plugin:@typescript-eslint/recommended',
@@ -58,6 +60,10 @@ module.exports = {
     'jsort/sort-imports': ['error'],
     'jsort/normalize-import-source': ['error'],
   },
-  settings: {},
+  settings: {
+    react: {
+      version: 'detect',
+    },
+  },
   ignorePatterns: ['dist/**'],
 };
