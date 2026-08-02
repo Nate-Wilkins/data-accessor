@@ -10,15 +10,15 @@
  * @param configuration.invalidate.auto.ttl - How long the callback result should be cached for (Time to Live).
  */
 export const createCallbackCache = <T, K>(
-  callback: () => Promise<T>,
-  onInvalidate: () => K | Promise<K>,
+  callback: () => T,
+  onInvalidate: () => K,
   configuration: {
     ttl: number;
     invalidate: { auto: { enable: boolean; ttl: number } };
   },
 ): {
-  callback: () => Promise<T>;
-  invalidate: () => Promise<T>;
+  callback: () => T;
+  invalidate: () => T;
   unregister?: null | (() => void);
 } => {
   // Configuration.
@@ -45,7 +45,7 @@ export const createCallbackCache = <T, K>(
     data.current = { dateCreated: Date.now(), data: input };
   };
 
-  const callbackCache = async () => {
+  const callbackCache = () => {
     // Get cache data.
     if (data.current) {
       // Did the data expire?
@@ -53,23 +53,23 @@ export const createCallbackCache = <T, K>(
         return data.current.data;
       } else {
         // Invalidate.
-        await onInvalidate();
+        onInvalidate();
       }
     }
 
     // Set cache data.
-    const response = await callback();
+    const response = callback();
     onSetData(response);
 
     return response;
   };
 
-  const callbackInvalidate = async () => {
+  const callbackInvalidate = () => {
     // Invalidate.
-    await onInvalidate();
+    onInvalidate();
 
     // Set cache data.
-    const response = await callback();
+    const response = callback();
     onSetData(response);
 
     return response;

@@ -183,7 +183,8 @@ test('when using a query hook *again* with ttl enabled', async () => {
     },
     suspense: {
       cache: {
-        set: (k: string, v: () => CacheResult<any>) => cacheSuspense.set(k, v),
+        set: (k: string, v: null | undefined | (() => CacheResult<any>)) =>
+          cacheSuspense.set(k, v),
         get: (k: string) => {
           return cacheSuspense.get(k) || null;
         },

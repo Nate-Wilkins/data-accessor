@@ -61,7 +61,7 @@ export const createConfiguration = (
   },
 ): ConfigurationQuery<RequestBook, ResponseBook, Book> => {
   return {
-    debug: true,
+    debug: 1,
     // TODO:
     // constraints: {
     //   ...overrides.constraints,

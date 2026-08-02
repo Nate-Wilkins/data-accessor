@@ -1,4 +1,12 @@
-import { ConfigurationQuery } from './types';
+import { getDefaultValue } from '../configuration';
+import { CacheResult, ConfigurationQuery } from './types';
+
+// Provides a default cache for suspense calls.
+const defaultCacheSuspense = new Map<
+  string,
+  null | undefined | (() => CacheResult<any>)
+>();
+const defaultCacheData = new Map<string, null | undefined | (() => any)>();
 
 /**
  * Validate configuration.
@@ -7,8 +15,10 @@ export const validateConfiguration = <TQueryRequest, TQueryResponse, TData>(
   configuration: ConfigurationQuery<TQueryRequest, TQueryResponse, TData>,
 ) => {
   if (typeof configuration.debug !== 'undefined') {
-    if (typeof configuration.debug !== 'boolean') {
-      throw new Error('Invalid `debug` value. Must be a boolean.');
+    if (typeof configuration.debug !== 'number') {
+      throw new Error(
+        'Invalid `debug` value. Must be an integer greater than zero.',
+      );
     }
   }
   if (typeof configuration.cache !== 'object') {
@@ -133,4 +143,55 @@ export const validateConfiguration = <TQueryRequest, TQueryResponse, TData>(
   if (typeof configuration.queryRequest !== 'function') {
     throw new Error('Invalid `queryRequest` value. Must be a function.');
   }
+
+  // prettier-ignore
+  return {
+    cCacheClear:                              configuration.cache.clear,
+    cCacheGet:                                configuration.cache.get,
+    cCacheId:                                 configuration.cache.id,
+    // cCacheInvalidateAutoConstraintsEnforce:   getDefaultValue(configuration.cache.invalidate?.auto?.constraints?.enforce,   false),
+    // cCacheInvalidateAutoConstraintsMaxDelay:  getDefaultValue(configuration.cache.invalidate?.auto?.constraints?.maxDelay,  null),
+    cCacheInvalidateAutoEnable:               getDefaultValue(configuration.cache.invalidate?.auto?.enable,                 false),
+    // cCacheInvalidateAutoShowLoading:          getDefaultValue(configuration.cache.invalidate?.auto?.showLoading,            true),
+    cCacheInvalidateAutoTtl:                  getDefaultValue(configuration.cache.invalidate?.auto?.ttl,                    configuration.cache.ttl),
+    cCacheIsPrimable:                         getDefaultValue(configuration.cache.isPrimable,                               true),
+    cCacheLimit:                              getDefaultValue(configuration.cache.limit,                                    0),
+    cCacheSet:                                configuration.cache.set,
+    cCacheTtl:                                configuration.cache.ttl,
+    // cConstraintsEnforce:                      getDefaultValue(configuration.constraints?.enforce,                           false),
+    // cConstraintsMaxDelay:                     getDefaultValue(configuration.constraints?.maxDelay,                          null),
+    cDebug:                                   getDefaultValue<number>(configuration.debug, 0),
+    cQueryRequest:                            configuration.queryRequest,
+    cQueryRequestMore:                        getDefaultValue(configuration.queryRequestMore, null),
+    cSuspense:                                (() => {
+      if (configuration.suspense) {
+        return {
+          sCacheSet: configuration.suspense.cache.set,
+          sCacheGet: configuration.suspense.cache.get,
+        };
+      }
+
+      return {
+        sCacheSet: (k: string, v: null | undefined | (() => CacheResult<TData>)) => defaultCacheSuspense.set(k, v),
+        sCacheGet: (k: string) => {
+          return defaultCacheSuspense.get(k) || null;
+        },
+      };
+    })(),
+    cCacheData:                               (() => {
+      if (configuration.cache.data) {
+        return {
+          sCacheDataSet: configuration.cache.data.set,
+          sCacheDataGet: configuration.cache.data.get,
+        };
+      }
+
+      return {
+        sCacheDataSet: (k: string, v: null | undefined | (() => CacheResult<TData>)) => defaultCacheData.set(k, v),
+        sCacheDataGet: (k: string) => {
+          return defaultCacheData.get(k) || null;
+        },
+      };
+    })(),
+  };
 };

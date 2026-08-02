@@ -1,29 +1,14 @@
-import { getDefaultValue } from '../configuration';
 import { createCallbackCache } from './create_callback_cache';
 import { createCallbackCaller } from './create_callback_caller';
 import { createCallbackLimiter } from './create_callback_limiter';
 import { createLazySuspense } from './create_lazy_suspense';
-import { CacheResult, ConfigurationQuery } from './types';
+import { ConfigurationQuery } from './types';
 import { validateConfiguration } from './validate_configuration';
-
-// Provides a default cache for suspense calls.
-const defaultCacheSuspense = new Map<string, () => CacheResult<any>>();
 
 /**
  * Use a query.
  *
  * This hook utilizes `React.Suspense`, `React.ErrorBoundary`, and proxies to make data querying easier on the client.
- *
- * Order of execution is as follows:
- *   1. Validate configuration.
- *   2. Flatten configuration.
- *   3. Setup query caller.
- *   4. Setup cache limiter.
- *   5. Setup cache primer.
- *   6. Setup cache invalidation for query request.
- *   7. Get result from data cache (isPrimable).
- *   8. Create suspended request query.
- *   9. Create callback for query more.
  *
  * @param.configuration.debug <false>                                                    - Turns logging on or off.
  *
@@ -78,10 +63,6 @@ export const useQuery = <TQueryRequest, TQueryResponse, TData>(
   args: TQueryRequest,
 ) => {
   // 1. Validate configuration.
-  validateConfiguration(configuration);
-
-  // 2. Flatten configuration.
-  // prettier-ignore
   const {
     cCacheClear,
     cCacheGet,
@@ -100,57 +81,55 @@ export const useQuery = <TQueryRequest, TQueryResponse, TData>(
     cDebug,
     cQueryRequest,
     cQueryRequestMore,
-    cSuspense: {
-      sCacheSet,
-      sCacheGet,
-    }
-  } = {
-    cCacheClear:                              configuration.cache.clear,
-    cCacheGet:                                configuration.cache.get,
-    cCacheId:                                 configuration.cache.id,
-    // cCacheInvalidateAutoConstraintsEnforce:   getDefaultValue(configuration.cache.invalidate?.auto?.constraints?.enforce,   false),
-    // cCacheInvalidateAutoConstraintsMaxDelay:  getDefaultValue(configuration.cache.invalidate?.auto?.constraints?.maxDelay,  null),
-    cCacheInvalidateAutoEnable:               getDefaultValue(configuration.cache.invalidate?.auto?.enable,                 false),
-    // cCacheInvalidateAutoShowLoading:          getDefaultValue(configuration.cache.invalidate?.auto?.showLoading,            true),
-    cCacheInvalidateAutoTtl:                  getDefaultValue(configuration.cache.invalidate?.auto?.ttl,                    configuration.cache.ttl),
-    cCacheIsPrimable:                         getDefaultValue(configuration.cache.isPrimable,                               true),
-    cCacheLimit:                              getDefaultValue(configuration.cache.limit,                                    0),
-    cCacheSet:                                configuration.cache.set,
-    cCacheTtl:                                configuration.cache.ttl,
-    // cConstraintsEnforce:                      getDefaultValue(configuration.constraints?.enforce,                           false),
-    // cConstraintsMaxDelay:                     getDefaultValue(configuration.constraints?.maxDelay,                          null),
-    cDebug:                                   getDefaultValue(configuration.debug, false),
-    cQueryRequest:                            configuration.queryRequest,
-    cQueryRequestMore:                        getDefaultValue(configuration.queryRequestMore, null),
-    cSuspense:                                (() => {
-      if (configuration.suspense) {
-        return {
-          sCacheSet: configuration.suspense.cache.set,
-          sCacheGet: configuration.suspense.cache.get,
-        };
-      }
-
-      return {
-        sCacheSet: (k: string, v: () => CacheResult<TData>) => defaultCacheSuspense.set(k, v),
-        sCacheGet: (k: string) => {
-          return defaultCacheSuspense.get(k) || null;
-        }
-      };
-    })()
-  };
+    cSuspense: { sCacheSet, sCacheGet },
+    cCacheData: { sCacheDataSet, sCacheDataGet },
+  } = validateConfiguration(configuration);
 
   // Get query identifier.
   const queryId = cCacheId({ args });
 
-  cDebug &&
-    console.log(`[data-accessor:${queryId}]: 1. Validate configuration.`);
-  cDebug &&
-    console.log(`[data-accessor:${queryId}]: 2. Flatten configuration..`);
+  cDebug >= 1 && console.log(`[data-accessor:${queryId}.query]: execute.`);
 
-  // 3. Setup query caller.
-  cDebug && console.log(`[data-accessor:${queryId}]: 3. Setup query caller.`);
+  cDebug >= 3 &&
+    console.log(`[data-accessor:${queryId}]: 1. Validate configuration.`);
+
+  // 2. Setup cache primer.
+  cDebug >= 3 &&
+    console.log(
+      `[data-accessor:${queryId}]: 2. Setup cache primer (cache.isPrimable: ${cCacheIsPrimable}).`,
+    );
+  const callbackCacheGet = () => {
+    cDebug >= 1 && console.log(`[data-accessor:${queryId}.cacheGet]: execute.`);
+    const result = cCacheGet({ args });
+    if (result !== null) {
+      cDebug >= 1 &&
+        console.log(`[data-accessor:${queryId}.cacheGet]: entry found.`);
+    } else {
+      cDebug >= 1 &&
+        console.log(`[data-accessor:${queryId}.cacheGet]: entry *not* found.`);
+    }
+    return result;
+  };
+
+  // 3. Setup cache limiter.
+  cDebug >= 3 &&
+    console.log(
+      `[data-accessor:${queryId}]: 3. Setup cache limiter (cache.limit: ${cCacheLimit}).`,
+    );
+  const { callback: callbackLimitCacheGet } = createCallbackLimiter(
+    callbackCacheGet,
+    {
+      max: cCacheLimit,
+      defaultValue: null,
+      reset: true,
+    },
+  );
+
+  // 4. Setup query caller.
+  cDebug >= 3 &&
+    console.log(`[data-accessor:${queryId}]: 4. Setup query caller.`);
   const callbackQueryRequest = async () => {
-    cDebug && console.log(`[data-accessor:${queryId}.query]: execute.`);
+    // Query.
     try {
       const response = await cQueryRequest(args);
 
@@ -164,7 +143,7 @@ export const useQuery = <TQueryRequest, TQueryResponse, TData>(
       }
 
       // Set query data cache.
-      cDebug &&
+      cDebug >= 1 &&
         console.log(`[data-accessor:${queryId}.query]: set data cache.`);
       const result = cCacheSet({
         args,
@@ -175,7 +154,7 @@ export const useQuery = <TQueryRequest, TQueryResponse, TData>(
         data: result.data,
       };
     } catch (e) {
-      cDebug &&
+      cDebug >= 1 &&
         console.error(`[data-accessor:${queryId}.query]: error executing.`);
       throw e;
     }
@@ -185,87 +164,69 @@ export const useQuery = <TQueryRequest, TQueryResponse, TData>(
     callback: callbackCallerQueryRequest,
   } = createCallbackCaller(callbackQueryRequest, { reset: false, max: 1 });
 
-  // 4. Setup cache limiter.
-  cDebug &&
+  // 5. Setup cache invalidation for query request.
+  cDebug >= 3 &&
     console.log(
-      `[data-accessor:${queryId}]: 4. Setup cache limiter (cache.limit: ${cCacheLimit}).`,
-    );
-  const callbackCacheGet = () => {
-    cDebug && console.log(`[data-accessor:${queryId}.cacheGet]: execute.`);
-    const result = cCacheGet({ args });
-    if (result !== null) {
-      cDebug &&
-        console.log(`[data-accessor:${queryId}.cacheGet]: entry found.`);
-    } else {
-      cDebug &&
-        console.log(`[data-accessor:${queryId}.cacheGet]: entry *not* found.`);
-    }
-    return result;
-  };
-  const { callback: callbackLimitCacheGet } = createCallbackLimiter(
-    callbackCacheGet,
-    {
-      max: cCacheLimit,
-      defaultValue: null,
-      reset: true,
-    },
-  );
-
-  // 5. Setup cache primer.
-  cDebug &&
-    console.log(
-      `[data-accessor:${queryId}]: 5. Setup cache primer (cache.isPrimable: ${cCacheIsPrimable}).`,
-    );
-  const callbackCachePrimerCondition =
-    callbackCallerQueryCount.current > 0 || cCacheIsPrimable
-      ? callbackLimitCacheGet
-      : callbackCallerQueryRequest;
-
-  // 6. Setup cache invalidation for query request.
-  cDebug &&
-    console.log(
-      `[data-accessor:${queryId}]: 6. Setup cache invalidation for query request.`,
+      `[data-accessor:${queryId}]: 5. Setup cache invalidation for query request.`,
     );
   const callbackCacheInvalidate = async () => {
-    cDebug && console.log(`[data-accessor:${queryId}.invalidate]: execute.`);
+    cDebug >= 1 &&
+      console.log(`[data-accessor:${queryId}.invalidate]: execute.`);
+    sCacheSet(queryId, null);
+    sCacheDataSet(queryId, null);
     return cCacheClear({ args });
   };
   const {
-    callback: callbackRequestQuery,
-    invalidate: callbackRequestQueryInvalidate,
-  } = createCallbackCache(
-    callbackCachePrimerCondition,
-    callbackCacheInvalidate,
-    {
-      ttl: cCacheTtl,
-      invalidate: {
-        auto: {
-          enable: cCacheInvalidateAutoEnable,
-          ttl: cCacheInvalidateAutoTtl,
-        },
+    callback: callbackTtlLimitCacheGet,
+    invalidate: callbackLimitCacheGetInvalidate,
+  } = createCallbackCache(callbackLimitCacheGet, callbackCacheInvalidate, {
+    ttl: cCacheTtl,
+    invalidate: {
+      auto: {
+        enable: cCacheInvalidateAutoEnable,
+        ttl: cCacheInvalidateAutoTtl,
       },
     },
-  );
+  });
 
-  // 7. Get result from data cache (isPrimable).
-  const cacheResult = callbackCachePrimerCondition();
-  cDebug &&
+  // 6. Create suspense cache option for primable cache.
+  cDebug >= 3 &&
     console.log(
-      `[data-accessor:${queryId}]: 7. Get result from data cache (isPrimable).`,
+      `[data-accessor:${queryId}]: 6. Create suspense cache option for primable cache.`,
     );
+  let callbackRequestQueryLimitCacheGet = sCacheDataGet(queryId);
+  if (!callbackRequestQueryLimitCacheGet) {
+    callbackRequestQueryLimitCacheGet = () => {
+      if (callbackCallerQueryCount.current > 0 || cCacheIsPrimable) {
+        const cacheResult = callbackTtlLimitCacheGet();
+        if (cacheResult) {
+          return cacheResult;
+        }
+      }
+      return null;
+    };
+    sCacheDataSet(queryId, callbackRequestQueryLimitCacheGet);
+  }
 
-  // 8. Create suspended request query.
-  const result = createLazySuspense(
-    queryId,
-    callbackRequestQuery,
-    sCacheGet,
-    sCacheSet,
-  );
+  let result = callbackRequestQueryLimitCacheGet();
+  if (!result) {
+    // 7. Create suspended request query.
+    cDebug >= 3 &&
+      console.log(
+        `[data-accessor:${queryId}]: 7. Create suspended request query.`,
+      );
+    result = createLazySuspense(
+      queryId,
+      callbackCallerQueryRequest,
+      sCacheGet,
+      sCacheSet,
+    );
+  }
 
-  // 9. Create callback for query more.
-  cDebug &&
+  // 8. Create callback for query more.
+  cDebug >= 3 &&
     console.log(
-      `[data-accessor:${queryId}]: 9. Create callback for query more.`,
+      `[data-accessor:${queryId}]: 8. Create callback for query more.`,
     );
   const callbackGetQueryRequestMore = ({
     args,
@@ -286,7 +247,7 @@ export const useQuery = <TQueryRequest, TQueryResponse, TData>(
 
   return {
     data: result.data,
-    cache: { invalidate: callbackRequestQueryInvalidate },
+    cache: { invalidate: callbackLimitCacheGetInvalidate },
     queryRequestMore,
   };
 };

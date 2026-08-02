@@ -13,22 +13,23 @@ export const createLazySuspense = <T,>(
   cacheGet: (k: string) => (() => T) | null | undefined,
   cacheSet: (k: string, v: () => T) => void,
 ): T => {
-  // Proxy designed to request data on access, treat this as the real "T" data.
+  // 1. Setup proxy.
+  //    Designed to request data on access, treat this as the real "T" data.
   const proxy = new Proxy(
     {},
     {
       get() {
-        // Invoke suspense!
+        // 3. Invoke suspense!
         const suspense = suspend(callback());
         cacheSet(cacheId, suspense);
         const result = suspense();
-        // NOTE: Currently never returned, unless some client code persists the proxy which isn't
-        //       currently recommended.
         return result;
       },
     },
   ) as T;
 
+  // 2. Check to see if cache has a suspended promise.
+  //    If it does return the cached suspense, otherwise return the proxy.
   const callbackSuspense = cacheGet(cacheId);
   const value = callbackSuspense ? callbackSuspense() : proxy;
   return value;

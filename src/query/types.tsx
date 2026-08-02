@@ -1,5 +1,5 @@
 export type ConfigurationQuery<TQueryRequest, TQueryRequestResponse, TData> = {
-  debug?: boolean;
+  debug?: number;
 
   cache: {
     limit?: number;
@@ -23,12 +23,20 @@ export type ConfigurationQuery<TQueryRequest, TQueryRequestResponse, TData> = {
     get: CacheGet<TQueryRequest, TData>;
 
     clear: CacheClear<TQueryRequest>;
+
+    data: {
+      get: (k: string) => () => TData | null | undefined;
+      set: (k: string, v: null | undefined | (() => TData)) => void;
+    };
   };
 
   suspense?: {
     cache: {
       get: (k: string) => (() => CacheResult<TData>) | null | undefined;
-      set: (k: string, v: () => CacheResult<TData>) => void;
+      set: (
+        k: string,
+        v: null | undefined | (() => CacheResult<TData>),
+      ) => void;
     };
   };
 

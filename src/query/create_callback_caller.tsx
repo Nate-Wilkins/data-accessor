@@ -6,9 +6,9 @@
  * @param configuration.max - The max state value for `called`.
  */
 export const createCallbackCaller = <T,>(
-  callback: () => Promise<T>,
+  callback: (...args: any[]) => Promise<T>,
   configuration: { reset: boolean; max: number },
-): { count: { current: number }; callback: () => Promise<T> } => {
+): { count: { current: number }; callback: (...args: any[]) => Promise<T> } => {
   // Configuration.
   const cReset = configuration.reset;
   const cMax = configuration.max;
@@ -16,8 +16,8 @@ export const createCallbackCaller = <T,>(
   // State.
   const count = { current: 0 };
 
-  const callerCallback = async () => {
-    const result = await callback();
+  const callerCallback = async (...args: any[]) => {
+    const result = await callback(...args);
 
     // Increase count.
     if (count.current < cMax) {
